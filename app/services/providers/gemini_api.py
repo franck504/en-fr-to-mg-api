@@ -58,7 +58,8 @@ class GeminiApiProvider(TranslationProvider):
                 "google-genai is not installed. Install dependencies before starting the Gemini provider."
             ) from exc
 
-        http_options = types.HttpOptions(timeout=self.timeout_seconds)
+        timeout_ms = max(int(self.timeout_seconds * 1000), 1000)
+        http_options = types.HttpOptions(timeout=timeout_ms)
         self._client = genai.Client(api_key=self.api_key, http_options=http_options)
         return self._client
 
