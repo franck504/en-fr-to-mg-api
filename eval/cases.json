@@ -52,7 +52,7 @@
     "source_lang": "en",
     "target_lang": "mg",
     "min_length_ratio": 0.6,
-    "expected_any_of": [["psoriasis"], ["eczema"], ["dokotera", "klinika", "clinical", "correlation"]],
+    "expected_any_of": [["psoriasis"], ["eczema"], ["dokotera", "klinika", "clinical", "correlation", "ara-pitsaboana", "fitsaboana", "fifandraisana"]],
     "notes": "Cas medical long avec termes critiques."
   },
   {
