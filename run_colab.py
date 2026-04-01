@@ -20,6 +20,40 @@ def configure_environment() -> tuple[str, int]:
     return host, port
 
 
+def _close_existing_ngrok_listeners(ngrok_module) -> int:
+    closed = 0
+
+    listeners_attr = getattr(ngrok_module, "listeners", None)
+    listeners = None
+    if callable(listeners_attr):
+        try:
+            listeners = listeners_attr()
+        except Exception:
+            listeners = None
+    elif listeners_attr is not None:
+        listeners = listeners_attr
+
+    if listeners is not None:
+        try:
+            for listener in list(listeners):
+                try:
+                    listener.close()
+                    closed += 1
+                except Exception:
+                    continue
+        except Exception:
+            pass
+
+    kill_fn = getattr(ngrok_module, "kill", None)
+    if callable(kill_fn):
+        try:
+            kill_fn()
+        except Exception:
+            pass
+
+    return closed
+
+
 def start_ngrok_tunnel(port: int):
     try:
         import ngrok
@@ -34,7 +68,23 @@ def start_ngrok_tunnel(port: int):
             "NGROK_AUTHTOKEN is missing. Create a free ngrok account and set the token in Colab."
         )
 
-    listener = ngrok.forward(port, authtoken=auth_token)
+    try:
+        listener = ngrok.forward(port, authtoken=auth_token)
+    except Exception as exc:
+        message = str(exc)
+        if "ERR_NGROK_334" in message or "already online" in message:
+            closed = _close_existing_ngrok_listeners(ngrok)
+            try:
+                listener = ngrok.forward(port, authtoken=auth_token)
+            except Exception as retry_exc:
+                raise RuntimeError(
+                    "ngrok could not start because the same endpoint is already online. "
+                    "Stop the previous Colab cell or previous ngrok session, then retry. "
+                    f"Auto-close attempt closed {closed} local listener(s). Original error: {retry_exc}"
+                ) from retry_exc
+        else:
+            raise RuntimeError(f"ngrok failed to start: {exc}") from exc
+
     public_url = listener.url()
     print(f"Public URL: {public_url}")
     print(f"Docs URL: {public_url}/docs")
