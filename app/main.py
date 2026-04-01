@@ -31,6 +31,7 @@ def read_root() -> dict[str, str]:
     return {
         "name": settings.app_name,
         "provider": provider.provider_name,
+        "model_family": getattr(provider, "model_family", "unknown"),
         "target_language": settings.target_language,
     }
 
@@ -41,7 +42,10 @@ def healthcheck() -> HealthResponse:
         status="ok",
         provider=provider.provider_name,
         model_name=provider.model_name,
+        model_family=getattr(provider, "model_family", "unknown"),
         model_loaded=provider.is_loaded,
+        runtime_device=getattr(provider, "runtime_device", "unknown"),
+        runtime_dtype=getattr(provider, "runtime_dtype", "unknown"),
     )
 
 

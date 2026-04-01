@@ -48,4 +48,7 @@ class HealthResponse(BaseModel):
     status: str
     provider: str
     model_name: str
+    model_family: str
     model_loaded: bool
+    runtime_device: str
+    runtime_dtype: str

@@ -11,6 +11,12 @@ Ce projet fournit un backend minimal pour traduire du texte depuis l'anglais (`e
 
 Le provider configure par defaut utilise `facebook/nllb-200-distilled-600M`. Le telechargement du modele se fait au premier demarrage ou a la premiere traduction, selon la variable `LOAD_MODEL_ON_STARTUP`.
 
+Le backend peut changer de modele sans modification de code via:
+
+- `HF_MODEL_NAME`
+- `HF_MODEL_FAMILY` (`auto`, `nllb`, `m2m100`)
+- `HF_DEVICE` (`auto`, `cpu`, `cuda`)
+
 ## Endpoints
 
 - `GET /health` pour verifier l'etat du service
@@ -71,6 +77,10 @@ Workflow minimal dans Colab:
 pip install -r requirements-colab.txt
 export NGROK_AUTHTOKEN="votre_token"
 export ENABLE_NGROK=true
+export PROVIDER=hf_seq2seq
+export HF_MODEL_NAME=facebook/nllb-200-distilled-1.3B
+export HF_MODEL_FAMILY=nllb
+export HF_DEVICE=auto
 export MODEL_CACHE_DIR=/content/hf_models
 python run_colab.py
 ```
@@ -84,6 +94,8 @@ Notes importantes pour Colab:
 - le notebook d'exemple peut maintenant cloner ou mettre a jour le depot GitHub automatiquement
 - si Colab affiche un warning de conflits `pip`, relancez la cellule d'installation apres synchronisation du depot pour recuperer les versions corrigees
 - le projet utilise maintenant le SDK Python officiel `ngrok` dans Colab, au lieu de `pyngrok`, pour eviter les echecs de telechargement du binaire
+- pour l'inference Transformers, preferez `T4 GPU`; le backend detecte `cuda` automatiquement quand il est disponible
+- le runtime `v5e-1 TPU` n'est pas encore branche a `torch_xla` dans ce projet, donc il risque de retomber sur CPU
 
 ## GitHub
 
@@ -137,6 +149,33 @@ Ce script ne remplace pas une validation humaine, mais il aide a reperer rapidem
 - certains termes ou concepts medicaux critiques qui disparaissent
 
 Le rapport JSON facilite ensuite la comparaison entre plusieurs modeles ou plusieurs versions du backend.
+
+## Model Swapping
+
+Le backend supporte maintenant deux familles de modeles Hugging Face:
+
+- `nllb`
+- `m2m100`
+
+Exemple pour tester `facebook/nllb-200-distilled-1.3B`:
+
+```bash
+export HF_MODEL_NAME=facebook/nllb-200-distilled-1.3B
+export HF_MODEL_FAMILY=nllb
+export HF_DEVICE=auto
+uvicorn app.main:app --reload
+```
+
+Exemple pour tester `facebook/m2m100_1.2B`:
+
+```bash
+export HF_MODEL_NAME=facebook/m2m100_1.2B
+export HF_MODEL_FAMILY=m2m100
+export HF_DEVICE=auto
+uvicorn app.main:app --reload
+```
+
+L'endpoint `/health` indique maintenant aussi la famille du modele, le device reel et le dtype reel utilises par le backend.
 
 ## Limites actuelles
 

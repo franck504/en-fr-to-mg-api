@@ -2,5 +2,6 @@ fastapi==0.124.1
 uvicorn[standard]==0.35.0
 pydantic-settings==2.10.1
 transformers==4.55.2
+accelerate==1.10.1
 sentencepiece==0.2.1
 ngrok>=1.7.0,<2.0.0
