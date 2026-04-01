@@ -83,6 +83,7 @@ Notes importantes pour Colab:
 - pour garder le cache du modele entre sessions, vous pouvez monter Google Drive et pointer `MODEL_CACHE_DIR` vers Drive
 - le notebook d'exemple peut maintenant cloner ou mettre a jour le depot GitHub automatiquement
 - si Colab affiche un warning de conflits `pip`, relancez la cellule d'installation apres synchronisation du depot pour recuperer les versions corrigees
+- le projet utilise maintenant le SDK Python officiel `ngrok` dans Colab, au lieu de `pyngrok`, pour eviter les echecs de telechargement du binaire
 
 ## GitHub
 

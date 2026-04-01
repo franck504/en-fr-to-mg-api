@@ -22,10 +22,10 @@ def configure_environment() -> tuple[str, int]:
 
 def start_ngrok_tunnel(port: int):
     try:
-        from pyngrok import ngrok
+        import ngrok
     except ImportError as exc:
         raise RuntimeError(
-            "pyngrok is missing. Install requirements-colab.txt before starting on Colab."
+            "ngrok is missing. Install requirements-colab.txt before starting on Colab."
         ) from exc
 
     auth_token = os.getenv("NGROK_AUTHTOKEN")
@@ -34,11 +34,11 @@ def start_ngrok_tunnel(port: int):
             "NGROK_AUTHTOKEN is missing. Create a free ngrok account and set the token in Colab."
         )
 
-    ngrok.set_auth_token(auth_token)
-    tunnel = ngrok.connect(port)
-    print(f"Public URL: {tunnel.public_url}")
-    print(f"Docs URL: {tunnel.public_url}/docs")
-    return tunnel
+    listener = ngrok.forward(port, authtoken=auth_token)
+    public_url = listener.url()
+    print(f"Public URL: {public_url}")
+    print(f"Docs URL: {public_url}/docs")
+    return listener
 
 
 def main() -> None:
@@ -54,9 +54,10 @@ def main() -> None:
         uvicorn.run("app.main:app", host=host, port=port, reload=False)
     finally:
         if tunnel is not None:
-            from pyngrok import ngrok
-
-            ngrok.disconnect(tunnel.public_url)
+            try:
+                tunnel.close()
+            except AttributeError:
+                pass
 
 
 if __name__ == "__main__":
