@@ -82,6 +82,7 @@ Notes importantes pour Colab:
 - si la session Colab se ferme, le processus backend s'arrete aussi
 - pour garder le cache du modele entre sessions, vous pouvez monter Google Drive et pointer `MODEL_CACHE_DIR` vers Drive
 - le notebook d'exemple peut maintenant cloner ou mettre a jour le depot GitHub automatiquement
+- si Colab affiche un warning de conflits `pip`, relancez la cellule d'installation apres synchronisation du depot pour recuperer les versions corrigees
 
 ## GitHub
 
