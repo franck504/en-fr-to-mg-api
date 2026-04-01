@@ -1,5 +1,6 @@
 from app.config import Settings
 from app.services.providers.base import TranslationProvider, TranslationResult
+from app.services.providers.gemini_api import GeminiApiProvider
 from app.services.providers.hf_seq2seq import (
     HuggingFaceSeq2SeqProvider,
     infer_model_family,
@@ -7,6 +8,15 @@ from app.services.providers.hf_seq2seq import (
 
 
 def build_provider(settings: Settings) -> TranslationProvider:
+    if settings.provider == "gemini_api":
+        return GeminiApiProvider(
+            model_name=settings.gemini_model_name,
+            api_key=settings.gemini_api_key,
+            temperature=settings.gemini_temperature,
+            thinking_budget=settings.gemini_thinking_budget,
+            timeout_seconds=settings.gemini_timeout_seconds,
+        )
+
     if settings.provider in {"hf_seq2seq", "local_nllb", "local_m2m100"}:
         if settings.provider == "local_nllb":
             model_family = "nllb"

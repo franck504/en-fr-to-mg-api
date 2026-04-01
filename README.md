@@ -16,6 +16,8 @@ Le backend peut changer de modele sans modification de code via:
 - `HF_MODEL_NAME`
 - `HF_MODEL_FAMILY` (`auto`, `nllb`, `m2m100`)
 - `HF_DEVICE` (`auto`, `cpu`, `cuda`)
+- `GEMINI_MODEL_NAME`
+- `GEMINI_API_KEY`
 
 ## Endpoints
 
@@ -77,11 +79,9 @@ Workflow minimal dans Colab:
 pip install -r requirements-colab.txt
 export NGROK_AUTHTOKEN="votre_token"
 export ENABLE_NGROK=true
-export PROVIDER=hf_seq2seq
-export HF_MODEL_NAME=facebook/nllb-200-distilled-1.3B
-export HF_MODEL_FAMILY=nllb
-export HF_DEVICE=auto
-export MODEL_CACHE_DIR=/content/hf_models
+export PROVIDER=gemini_api
+export GEMINI_API_KEY="votre_cle_gemini"
+export GEMINI_MODEL_NAME=gemini-2.5-flash
 python run_colab.py
 ```
 
@@ -96,6 +96,7 @@ Notes importantes pour Colab:
 - le projet utilise maintenant le SDK Python officiel `ngrok` dans Colab, au lieu de `pyngrok`, pour eviter les echecs de telechargement du binaire
 - pour l'inference Transformers, preferez `T4 GPU`; le backend detecte `cuda` automatiquement quand il est disponible
 - le runtime `v5e-1 TPU` n'est pas encore branche a `torch_xla` dans ce projet, donc il risque de retomber sur CPU
+- pour le provider `gemini_api`, aucun GPU Colab n'est necessaire car l'inference se fait cote Google
 
 ## GitHub
 
@@ -152,14 +153,25 @@ Le rapport JSON facilite ensuite la comparaison entre plusieurs modeles ou plusi
 
 ## Model Swapping
 
-Le backend supporte maintenant deux familles de modeles Hugging Face:
+Le backend supporte maintenant:
 
+- `gemini_api`
 - `nllb`
 - `m2m100`
+
+Exemple pour tester `gemini-2.5-flash`:
+
+```bash
+export PROVIDER=gemini_api
+export GEMINI_API_KEY="votre_cle_gemini"
+export GEMINI_MODEL_NAME=gemini-2.5-flash
+uvicorn app.main:app --reload
+```
 
 Exemple pour tester `facebook/nllb-200-distilled-1.3B`:
 
 ```bash
+export PROVIDER=hf_seq2seq
 export HF_MODEL_NAME=facebook/nllb-200-distilled-1.3B
 export HF_MODEL_FAMILY=nllb
 export HF_DEVICE=auto
@@ -169,6 +181,7 @@ uvicorn app.main:app --reload
 Exemple pour tester `facebook/m2m100_1.2B`:
 
 ```bash
+export PROVIDER=hf_seq2seq
 export HF_MODEL_NAME=facebook/m2m100_1.2B
 export HF_MODEL_FAMILY=m2m100
 export HF_DEVICE=auto
