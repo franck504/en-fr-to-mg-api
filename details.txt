@@ -1,0 +1,7 @@
+type : service, backend
+fonctionnalite : traduction de texte en fr ou en vers mg (francais ou anglais ---> malgache)
+principe (1) : a determiner comment nous allons faire , realiser cette fonctionnalite
+qualite : portable(sous docker , docker compose) , rapide(protocole rapide , stack rapide) , compatibilite(que le projet soit reutilisable avec plusieurs applications)
+cout de realisation : que ce soit totalement gratuit, j'ai pas d'argent
+
+(1) : consommer un API de LLM gratuit qui est deja forte OU utiliser un modele sur huggingface/kaggle

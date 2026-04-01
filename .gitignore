@@ -1,0 +1,13 @@
+.env
+.git-credentials
+.codex
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ipynb_checkpoints/
+models/
+.DS_Store

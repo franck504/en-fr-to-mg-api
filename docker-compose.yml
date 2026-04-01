@@ -1,0 +1,15 @@
+services:
+  translator-api:
+    build:
+      context: .
+    container_name: en-fr-to-mg-api
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    volumes:
+      - model_cache:/models
+    restart: unless-stopped
+
+volumes:
+  model_cache:
