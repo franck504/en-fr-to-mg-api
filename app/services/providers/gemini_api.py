@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import os
+import re
+import time
 
 from app.services.language_utils import detect_source_language
 from app.services.providers.base import TranslationProvider, TranslationResult
@@ -23,12 +25,16 @@ class GeminiApiProvider(TranslationProvider):
         temperature: float,
         thinking_budget: int,
         timeout_seconds: float,
+        max_retries: int,
+        retry_default_delay_seconds: float,
     ) -> None:
         self.model_name = model_name
         self.api_key = api_key or os.getenv("GEMINI_API_KEY")
         self.temperature = temperature
         self.thinking_budget = thinking_budget
         self.timeout_seconds = timeout_seconds
+        self.max_retries = max_retries
+        self.retry_default_delay_seconds = retry_default_delay_seconds
         self.model_family = "gemini"
         self.runtime_device = "api"
         self.runtime_dtype = "n/a"
@@ -62,6 +68,17 @@ class GeminiApiProvider(TranslationProvider):
         http_options = types.HttpOptions(timeout=timeout_ms)
         self._client = genai.Client(api_key=self.api_key, http_options=http_options)
         return self._client
+
+    def _extract_retry_delay_seconds(self, message: str) -> float:
+        retry_delay_match = re.search(r"retryDelay': '(\d+)s'", message)
+        if retry_delay_match:
+            return float(retry_delay_match.group(1)) + 1.0
+
+        retry_in_match = re.search(r"retry in ([0-9]+(?:\.[0-9]+)?)s", message, re.IGNORECASE)
+        if retry_in_match:
+            return float(retry_in_match.group(1)) + 1.0
+
+        return self.retry_default_delay_seconds
 
     def _build_contents(
         self,
@@ -101,22 +118,30 @@ class GeminiApiProvider(TranslationProvider):
                 "google-genai is not installed. Install dependencies before starting the Gemini provider."
             ) from exc
 
-        try:
-            response = client.models.generate_content(
-                model=self.model_name,
-                contents=self._build_contents(text, resolved_source_lang, target_lang),
-                config=types.GenerateContentConfig(
-                    system_instruction=(
-                        "You are a professional translation engine specialized in faithful English/French "
-                        "to Malagasy translation. Return only the final translation."
+        for attempt in range(self.max_retries + 1):
+            try:
+                response = client.models.generate_content(
+                    model=self.model_name,
+                    contents=self._build_contents(text, resolved_source_lang, target_lang),
+                    config=types.GenerateContentConfig(
+                        system_instruction=(
+                            "You are a professional translation engine specialized in faithful English/French "
+                            "to Malagasy translation. Return only the final translation."
+                        ),
+                        temperature=self.temperature,
+                        max_output_tokens=1024,
+                        thinking_config=types.ThinkingConfig(thinking_budget=self.thinking_budget),
                     ),
-                    temperature=self.temperature,
-                    max_output_tokens=1024,
-                    thinking_config=types.ThinkingConfig(thinking_budget=self.thinking_budget),
-                ),
-            )
-        except Exception as exc:
-            raise RuntimeError(f"Gemini API request failed: {exc}") from exc
+                )
+                break
+            except Exception as exc:
+                message = str(exc)
+                is_retryable = "RESOURCE_EXHAUSTED" in message or "429" in message
+                if not is_retryable or attempt >= self.max_retries:
+                    raise RuntimeError(f"Gemini API request failed: {exc}") from exc
+
+                delay_seconds = self._extract_retry_delay_seconds(message)
+                time.sleep(delay_seconds)
 
         translated_text = (response.text or "").strip()
         if not translated_text:

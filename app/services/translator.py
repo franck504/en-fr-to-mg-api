@@ -15,6 +15,8 @@ def build_provider(settings: Settings) -> TranslationProvider:
             temperature=settings.gemini_temperature,
             thinking_budget=settings.gemini_thinking_budget,
             timeout_seconds=settings.gemini_timeout_seconds,
+            max_retries=settings.gemini_max_retries,
+            retry_default_delay_seconds=settings.gemini_retry_default_delay_seconds,
         )
 
     if settings.provider in {"hf_seq2seq", "local_nllb", "local_m2m100"}:

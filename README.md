@@ -18,6 +18,7 @@ Le backend peut changer de modele sans modification de code via:
 - `HF_DEVICE` (`auto`, `cpu`, `cuda`)
 - `GEMINI_MODEL_NAME`
 - `GEMINI_API_KEY`
+- `GEMINI_MAX_RETRIES`
 
 ## Endpoints
 
@@ -81,7 +82,8 @@ export NGROK_AUTHTOKEN="votre_token"
 export ENABLE_NGROK=true
 export PROVIDER=gemini_api
 export GEMINI_API_KEY="votre_cle_gemini"
-export GEMINI_MODEL_NAME=gemini-2.5-flash
+export GEMINI_MODEL_NAME=gemini-2.5-flash-lite
+export GEMINI_MAX_RETRIES=3
 python run_colab.py
 ```
 
@@ -97,6 +99,7 @@ Notes importantes pour Colab:
 - pour l'inference Transformers, preferez `T4 GPU`; le backend detecte `cuda` automatiquement quand il est disponible
 - le runtime `v5e-1 TPU` n'est pas encore branche a `torch_xla` dans ce projet, donc il risque de retomber sur CPU
 - pour le provider `gemini_api`, aucun GPU Colab n'est necessaire car l'inference se fait cote Google
+- pour le free tier Gemini, `gemini-2.5-flash-lite` est un meilleur point de depart que `gemini-2.5-flash` si vous voulez lancer un benchmark plus long
 
 ## GitHub
 
@@ -159,12 +162,13 @@ Le backend supporte maintenant:
 - `nllb`
 - `m2m100`
 
-Exemple pour tester `gemini-2.5-flash`:
+Exemple pour tester `gemini-2.5-flash-lite`:
 
 ```bash
 export PROVIDER=gemini_api
 export GEMINI_API_KEY="votre_cle_gemini"
-export GEMINI_MODEL_NAME=gemini-2.5-flash
+export GEMINI_MODEL_NAME=gemini-2.5-flash-lite
+export GEMINI_MAX_RETRIES=3
 uvicorn app.main:app --reload
 ```
 
