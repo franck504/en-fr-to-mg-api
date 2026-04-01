@@ -32,7 +32,7 @@
     "source_lang": "fr",
     "target_lang": "mg",
     "min_length_ratio": 0.55,
-    "expected_any_of": [["eczema"]],
+    "expected_any_of": [["eczema", "ekzema"]],
     "notes": "Verifie que le terme medical principal et le conseil final ne disparaissent pas."
   },
   {
@@ -42,7 +42,7 @@
     "source_lang": "en",
     "target_lang": "mg",
     "min_length_ratio": 0.55,
-    "expected_any_of": [["eczema"]],
+    "expected_any_of": [["eczema", "ekzema"]],
     "notes": "Ce cas avait deja montre une perte partielle du sens."
   },
   {
@@ -90,5 +90,131 @@
     "target_lang": "mg",
     "min_length_ratio": 0.55,
     "expected_any_of": [["roa", "indroa", "deux"], ["fito", "7", "sept"]]
+  },
+  {
+    "id": "en_fungal_infection_warning",
+    "domain": "medical",
+    "text": "The lesions may be caused by a fungal infection rather than eczema. Avoid self-medication and seek medical advice.",
+    "source_lang": "en",
+    "target_lang": "mg",
+    "min_length_ratio": 0.6,
+    "expected_any_of": [["fungal", "holatra", "fongique"], ["eczema", "ekzema"], ["dokotera", "medical", "medecin", "fitsaboana"]]
+  },
+  {
+    "id": "fr_fungal_infection_warning",
+    "domain": "medical",
+    "text": "Les lesions peuvent etre dues a une infection fongique plutot qu'a un eczema. Evitez l'automedication et demandez un avis medical.",
+    "source_lang": "fr",
+    "target_lang": "mg",
+    "min_length_ratio": 0.6,
+    "expected_any_of": [["fung", "holatra", "fongique"], ["eczema", "ekzema"], ["dokotera", "medical", "medecin", "fitsaboana"]]
+  },
+  {
+    "id": "en_biopsy_recommendation",
+    "domain": "medical",
+    "text": "If the rash does not improve after two weeks of treatment, a skin biopsy should be considered to rule out other conditions.",
+    "source_lang": "en",
+    "target_lang": "mg",
+    "min_length_ratio": 0.6,
+    "expected_any_of": [["roa", "herinandro", "two weeks", "deux semaines"], ["biopsy", "biopsie"], ["rule out", "other conditions", "hafa", "condition"]]
+  },
+  {
+    "id": "fr_biopsy_recommendation",
+    "domain": "medical",
+    "text": "Si l'eruption ne s'ameliore pas apres deux semaines de traitement, une biopsie cutanee devrait etre envisagee pour exclure d'autres pathologies.",
+    "source_lang": "fr",
+    "target_lang": "mg",
+    "min_length_ratio": 0.6,
+    "expected_any_of": [["roa", "herinandro", "deux"], ["biopsie", "biopsy"], ["pathologies", "aretina", "hafa"]]
+  },
+  {
+    "id": "en_bacterial_infection_case",
+    "domain": "medical",
+    "text": "The presence of yellow crusts and pain suggests a secondary bacterial infection. Oral antibiotics may be necessary.",
+    "source_lang": "en",
+    "target_lang": "mg",
+    "min_length_ratio": 0.58,
+    "expected_any_of": [["bacterial", "bakteria", "infection"], ["antibiot", "antibiotic"]]
+  },
+  {
+    "id": "fr_bacterial_infection_case",
+    "domain": "medical",
+    "text": "La presence de croutes jaunatres et de douleur suggere une infection bacterienne secondaire. Des antibiotiques oraux peuvent etre necessaires.",
+    "source_lang": "fr",
+    "target_lang": "mg",
+    "min_length_ratio": 0.58,
+    "expected_any_of": [["bacter", "infection"], ["antibiot"]]
+  },
+  {
+    "id": "en_sunscreen_advice",
+    "domain": "medical",
+    "text": "Use a broad-spectrum sunscreen every morning and avoid direct sun exposure on irritated skin.",
+    "source_lang": "en",
+    "target_lang": "mg",
+    "min_length_ratio": 0.55,
+    "expected_any_of": [["sunscreen", "masoandro", "screen"], ["morning", "maraina"], ["avoid", "aza", "ialao"]]
+  },
+  {
+    "id": "fr_sunscreen_advice",
+    "domain": "medical",
+    "text": "Utilisez un ecran solaire a large spectre chaque matin et evitez l'exposition directe au soleil sur la peau irritee.",
+    "source_lang": "fr",
+    "target_lang": "mg",
+    "min_length_ratio": 0.55,
+    "expected_any_of": [["ecran", "sunscreen", "masoandro"], ["maraina", "matin"], ["evitez", "aza", "ialao"]]
+  },
+  {
+    "id": "en_allergy_history",
+    "domain": "medical",
+    "text": "Please tell your doctor if you have a history of asthma, allergic rhinitis, or previous severe skin reactions.",
+    "source_lang": "en",
+    "target_lang": "mg",
+    "min_length_ratio": 0.6,
+    "expected_any_of": [["dokotera", "doctor"], ["asthma", "asma"], ["allergic", "allergy", "allergique"]]
+  },
+  {
+    "id": "fr_allergy_history",
+    "domain": "medical",
+    "text": "Veuillez informer votre medecin si vous avez des antecedents d'asthme, de rhinite allergique ou de reactions cutanees severes.",
+    "source_lang": "fr",
+    "target_lang": "mg",
+    "min_length_ratio": 0.6,
+    "expected_any_of": [["dokotera", "medecin"], ["asthme", "asma"], ["allergique", "allergy"]]
+  },
+  {
+    "id": "en_patch_test",
+    "domain": "medical",
+    "text": "A patch test may help identify whether the dermatitis is triggered by a cosmetic product or metal contact.",
+    "source_lang": "en",
+    "target_lang": "mg",
+    "min_length_ratio": 0.6,
+    "expected_any_of": [["patch", "test"], ["dermatitis"], ["cosmetic", "product", "metal", "contact"]]
+  },
+  {
+    "id": "fr_patch_test",
+    "domain": "medical",
+    "text": "Un patch test peut aider a identifier si la dermatite est declenchee par un produit cosmetique ou par le contact avec un metal.",
+    "source_lang": "fr",
+    "target_lang": "mg",
+    "min_length_ratio": 0.6,
+    "expected_any_of": [["patch", "test"], ["dermatite", "dermatitis"], ["cosmetique", "metal", "contact"]]
+  },
+  {
+    "id": "en_general_appointment",
+    "domain": "general",
+    "text": "Your appointment is scheduled for next Tuesday at 9 a.m. Please arrive ten minutes early.",
+    "source_lang": "en",
+    "target_lang": "mg",
+    "min_length_ratio": 0.55,
+    "expected_any_of": [["talata", "tuesday"], ["9", "sivy"], ["folo", "ten", "minutes"]]
+  },
+  {
+    "id": "fr_general_delivery",
+    "domain": "general",
+    "text": "Votre commande sera livree demain entre huit heures et midi. Merci de garder votre telephone accessible.",
+    "source_lang": "fr",
+    "target_lang": "mg",
+    "min_length_ratio": 0.55,
+    "expected_any_of": [["rahampitso", "demain"], ["telephone"], ["valo", "huit", "midi", "douze"]]
   }
 ]
