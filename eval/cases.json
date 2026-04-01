@@ -1,0 +1,94 @@
+[
+  {
+    "id": "en_basic_hello",
+    "domain": "general",
+    "text": "Hello, how are you?",
+    "source_lang": "en",
+    "target_lang": "mg",
+    "min_length_ratio": 0.35,
+    "expected_any_of": [["salama"]]
+  },
+  {
+    "id": "fr_basic_hello",
+    "domain": "general",
+    "text": "Bonjour, comment allez-vous ?",
+    "source_lang": "fr",
+    "target_lang": "mg",
+    "min_length_ratio": 0.35,
+    "expected_any_of": [["salama"]]
+  },
+  {
+    "id": "en_auto_greeting",
+    "domain": "general",
+    "text": "Good morning my friend",
+    "source_lang": "auto",
+    "target_lang": "mg",
+    "min_length_ratio": 0.4
+  },
+  {
+    "id": "fr_eczema_guidance",
+    "domain": "medical",
+    "text": "Malheureusement, vous etes atteint(e) d'eczema. La solution est de bien hydrater regulierement la peau et de consulter directement un medecin.",
+    "source_lang": "fr",
+    "target_lang": "mg",
+    "min_length_ratio": 0.55,
+    "expected_any_of": [["eczema"]],
+    "notes": "Verifie que le terme medical principal et le conseil final ne disparaissent pas."
+  },
+  {
+    "id": "en_eczema_guidance",
+    "domain": "medical",
+    "text": "Unfortunately, you have eczema. The solution is to keep your skin well moisturized regularly and to consult a doctor promptly.",
+    "source_lang": "en",
+    "target_lang": "mg",
+    "min_length_ratio": 0.55,
+    "expected_any_of": [["eczema"]],
+    "notes": "Ce cas avait deja montre une perte partielle du sens."
+  },
+  {
+    "id": "en_psoriasis_differential",
+    "domain": "medical",
+    "text": "The automated skin analysis system detected multiple regions of interest characterized by erythema, scaling, and mild inflammation. The probability score suggests a high likelihood of psoriasis; however, differential diagnosis with eczema or fungal infection should be considered. Clinical correlation is required.",
+    "source_lang": "en",
+    "target_lang": "mg",
+    "min_length_ratio": 0.6,
+    "expected_any_of": [["psoriasis"], ["eczema"], ["dokotera", "klinika", "clinical", "correlation"]],
+    "notes": "Cas medical long avec termes critiques."
+  },
+  {
+    "id": "en_atopic_dermatitis",
+    "domain": "medical",
+    "text": "The skin image analysis shows moderate inflammation with the presence of red patches and localized dryness. These signs are consistent with atopic dermatitis. Regular moisturization and topical treatment are recommended.",
+    "source_lang": "en",
+    "target_lang": "mg",
+    "min_length_ratio": 0.6,
+    "expected_any_of": [["dermatitis", "atopic"]],
+    "notes": "Le modele avait deja tendance a couper la recommandation finale."
+  },
+  {
+    "id": "fr_psoriasis_consult",
+    "domain": "medical",
+    "text": "L'analyse automatique de la peau suggere un psoriasis probable. Une consultation dermatologique est recommandee pour confirmer le diagnostic.",
+    "source_lang": "fr",
+    "target_lang": "mg",
+    "min_length_ratio": 0.6,
+    "expected_any_of": [["psoriasis"], ["dokotera", "dermatolog", "consult"]]
+  },
+  {
+    "id": "en_short_warning",
+    "domain": "medical",
+    "text": "Do not scratch the affected skin area.",
+    "source_lang": "en",
+    "target_lang": "mg",
+    "min_length_ratio": 0.45
+  },
+  {
+    "id": "fr_treatment_plan",
+    "domain": "medical",
+    "text": "Appliquez la creme deux fois par jour pendant sept jours et revenez si les rougeurs augmentent.",
+    "source_lang": "fr",
+    "target_lang": "mg",
+    "min_length_ratio": 0.55,
+    "expected_any_of": [["roa", "indroa", "deux"], ["fito", "7", "sept"]]
+  }
+]

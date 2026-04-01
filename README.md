@@ -107,6 +107,37 @@ git push -u origin main
 
 Le fichier `.gitignore` exclut deja `.env`, les caches Python et les fichiers locaux a ne pas pousser.
 
+## Banc De Test Qualite
+
+Un petit banc de test est disponible pour evaluer la qualite des traductions sur une liste stable de cas.
+
+Fichiers:
+
+- `eval/cases.json` contient les phrases de reference
+- `eval/run_quality_benchmark.py` appelle `/translate` et produit un rapport JSON
+- `eval/reports/latest_report.json` est le chemin de sortie par defaut
+
+Exemple contre un backend local:
+
+```bash
+python3 eval/run_quality_benchmark.py --base-url http://127.0.0.1:8000
+```
+
+Exemple contre le backend Colab expose par ngrok:
+
+```bash
+python3 eval/run_quality_benchmark.py --base-url https://votre-url-ngrok
+```
+
+Ce script ne remplace pas une validation humaine, mais il aide a reperer rapidement:
+
+- les traductions vides ou inchangees
+- les sorties anormalement courtes
+- les pertes de phrases sur les cas longs
+- certains termes ou concepts medicaux critiques qui disparaissent
+
+Le rapport JSON facilite ensuite la comparaison entre plusieurs modeles ou plusieurs versions du backend.
+
 ## Limites actuelles
 
 - Le service cible uniquement `en/fr -> mg`
