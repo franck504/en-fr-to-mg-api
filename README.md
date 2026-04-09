@@ -22,13 +22,17 @@ Le backend peut changer de modele sans modification de code via:
 
 ## Endpoints
 
-- `GET /health` pour verifier l'etat du service
-- `POST /translate` pour traduire un texte
+- `GET /health` pour voir les deux providers en meme temps
+- `GET /health/gemini` pour l'etat du provider Gemini
+- `GET /health/local_llm` pour l'etat du provider local
+- `POST /translate` pour utiliser le provider par defaut configure
+- `POST /translate/gemini` pour forcer Gemini
+- `POST /translate/local_llm` pour forcer le modele local
 
 Exemple de requete:
 
 ```bash
-curl -X POST http://localhost:8000/translate \
+curl -X POST http://localhost:8000/translate/gemini \
   -H "Content-Type: application/json" \
   -d '{
     "text": "Hello, how are you?",
@@ -137,6 +141,22 @@ Exemple contre un backend local:
 
 ```bash
 python3 eval/run_quality_benchmark.py --base-url http://127.0.0.1:8000
+```
+
+Exemple contre Gemini dans le meme backend:
+
+```bash
+python3 eval/run_quality_benchmark.py \
+  --base-url http://127.0.0.1:8000 \
+  --translate-path /translate/gemini
+```
+
+Exemple contre le modele local dans le meme backend:
+
+```bash
+python3 eval/run_quality_benchmark.py \
+  --base-url http://127.0.0.1:8000 \
+  --translate-path /translate/local_llm
 ```
 
 Exemple contre le backend Colab expose par ngrok:

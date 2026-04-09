@@ -46,6 +46,11 @@ def parse_args() -> argparse.Namespace:
         help="Path to the JSON report to write.",
     )
     parser.add_argument(
+        "--translate-path",
+        default="/translate",
+        help="Translation endpoint path, for example /translate, /translate/gemini, or /translate/local_llm.",
+    )
+    parser.add_argument(
         "--timeout",
         type=float,
         default=180.0,
@@ -126,13 +131,18 @@ def evaluate_case(case: dict[str, Any], payload: dict[str, Any]) -> list[str]:
     return warnings
 
 
-def run_case(base_url: str, case: dict[str, Any], timeout: float) -> CaseResult:
+def run_case(
+    base_url: str,
+    translate_path: str,
+    case: dict[str, Any],
+    timeout: float,
+) -> CaseResult:
     payload = {
         "text": case["text"],
         "source_lang": case["source_lang"],
         "target_lang": case["target_lang"],
     }
-    endpoint = f"{base_url.rstrip('/')}/translate"
+    endpoint = f"{base_url.rstrip('/')}/{translate_path.lstrip('/')}"
 
     try:
         response_payload, latency_ms = post_json(endpoint, payload, timeout=timeout)
@@ -177,6 +187,7 @@ def run_case(base_url: str, case: dict[str, Any], timeout: float) -> CaseResult:
 
 def build_report(
     base_url: str,
+    translate_path: str,
     cases_path: Path,
     results: list[CaseResult],
 ) -> dict[str, Any]:
@@ -194,6 +205,7 @@ def build_report(
 
     return {
         "base_url": base_url,
+        "translate_path": translate_path,
         "cases_path": str(cases_path),
         "summary": {
             "total": total,
@@ -239,11 +251,16 @@ def main() -> int:
 
     results: list[CaseResult] = []
     for case in cases:
-        result = run_case(args.base_url, case, timeout=args.timeout)
+        result = run_case(
+            args.base_url,
+            args.translate_path,
+            case,
+            timeout=args.timeout,
+        )
         results.append(result)
         print_result(result)
 
-    report = build_report(args.base_url, cases_path, results)
+    report = build_report(args.base_url, args.translate_path, cases_path, results)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 

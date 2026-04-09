@@ -7,17 +7,37 @@ from app.services.providers.hf_seq2seq import (
 )
 
 
+def build_gemini_provider(settings: Settings) -> TranslationProvider:
+    return GeminiApiProvider(
+        model_name=settings.gemini_model_name,
+        api_key=settings.gemini_api_key,
+        temperature=settings.gemini_temperature,
+        thinking_budget=settings.gemini_thinking_budget,
+        timeout_seconds=settings.gemini_timeout_seconds,
+        max_retries=settings.gemini_max_retries,
+        retry_default_delay_seconds=settings.gemini_retry_default_delay_seconds,
+    )
+
+
+def build_local_llm_provider(settings: Settings) -> TranslationProvider:
+    model_family = (
+        infer_model_family(settings.hf_model_name)
+        if settings.hf_model_family == "auto"
+        else settings.hf_model_family
+    )
+    return HuggingFaceSeq2SeqProvider(
+        provider_name="local_llm",
+        model_name=settings.hf_model_name,
+        model_family=model_family,
+        cache_dir=settings.model_cache_dir,
+        max_length=settings.translation_max_length,
+        device=settings.hf_device,
+    )
+
+
 def build_provider(settings: Settings) -> TranslationProvider:
     if settings.provider == "gemini_api":
-        return GeminiApiProvider(
-            model_name=settings.gemini_model_name,
-            api_key=settings.gemini_api_key,
-            temperature=settings.gemini_temperature,
-            thinking_budget=settings.gemini_thinking_budget,
-            timeout_seconds=settings.gemini_timeout_seconds,
-            max_retries=settings.gemini_max_retries,
-            retry_default_delay_seconds=settings.gemini_retry_default_delay_seconds,
-        )
+        return build_gemini_provider(settings)
 
     if settings.provider in {"hf_seq2seq", "local_nllb", "local_m2m100"}:
         if settings.provider == "local_nllb":
