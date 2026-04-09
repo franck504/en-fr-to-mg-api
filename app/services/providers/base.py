@@ -25,6 +25,9 @@ class TranslationProvider(ABC):
     def warmup(self) -> None:
         raise NotImplementedError
 
+    def unload(self) -> None:
+        return None
+
     @abstractmethod
     def translate(
         self,

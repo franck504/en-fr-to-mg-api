@@ -1,83 +1,37 @@
 from __future__ import annotations
 
 import gc
-from dataclasses import dataclass
-from typing import Any
 
 from app.services.language_utils import detect_source_language
 from app.services.providers.base import TranslationProvider, TranslationResult
 
 
-@dataclass(frozen=True)
-class ModelFamilySpec:
-    family_name: str
-    language_codes: dict[str, str]
-    target_token_method: str
+SUPPORTED_SOURCE_LANGUAGES = {"en", "fr"}
 
 
-MODEL_FAMILY_SPECS: dict[str, ModelFamilySpec] = {
-    "nllb": ModelFamilySpec(
-        family_name="nllb",
-        language_codes={
-            "en": "eng_Latn",
-            "fr": "fra_Latn",
-            "mg": "plt_Latn",
-        },
-        target_token_method="nllb",
-    ),
-    "m2m100": ModelFamilySpec(
-        family_name="m2m100",
-        language_codes={
-            "en": "en",
-            "fr": "fr",
-            "mg": "mg",
-        },
-        target_token_method="m2m100",
-    ),
-}
+class Gemma4LocalProvider(TranslationProvider):
+    provider_name = "gemma4"
+    model_family = "gemma4"
 
-
-def infer_model_family(model_name: str) -> str:
-    lowered = model_name.lower()
-    if "nllb" in lowered:
-        return "nllb"
-    if "m2m100" in lowered:
-        return "m2m100"
-    raise ValueError(
-        "Unable to infer the Hugging Face model family from HF_MODEL_NAME. "
-        "Set HF_MODEL_FAMILY explicitly."
-    )
-
-
-class HuggingFaceSeq2SeqProvider(TranslationProvider):
     def __init__(
         self,
-        provider_name: str,
         model_name: str,
-        model_family: str,
         cache_dir: str,
-        max_length: int,
         device: str,
+        max_new_tokens: int,
     ) -> None:
-        if model_family not in MODEL_FAMILY_SPECS:
-            supported = ", ".join(sorted(MODEL_FAMILY_SPECS))
-            raise ValueError(f"Unsupported HF model family: {model_family}. Use one of: {supported}")
-
-        self.provider_name = provider_name
         self.model_name = model_name
-        self.model_family = model_family
         self.cache_dir = cache_dir
-        self.max_length = max_length
         self.device = device
+        self.max_new_tokens = max_new_tokens
         self.runtime_device = "uninitialized"
         self.runtime_dtype = "uninitialized"
-        self._spec = MODEL_FAMILY_SPECS[model_family]
-        self._tokenizer = None
+        self._processor = None
         self._model = None
 
     @property
     def is_loaded(self) -> bool:
-        return self._tokenizer is not None and self._model is not None
+        return self._processor is not None and self._model is not None
 
     def warmup(self) -> None:
         self._load_model()
@@ -97,7 +51,7 @@ class HuggingFaceSeq2SeqProvider(TranslationProvider):
             except Exception:
                 pass
 
-        self._tokenizer = None
+        self._processor = None
         self._model = None
         self.runtime_device = "uninitialized"
         self.runtime_dtype = "uninitialized"
@@ -109,7 +63,7 @@ class HuggingFaceSeq2SeqProvider(TranslationProvider):
 
     def _resolve_device(self) -> str:
         if self.device not in {"auto", "cpu", "cuda"}:
-            raise RuntimeError("HF_DEVICE must be one of: auto, cpu, cuda")
+            raise RuntimeError("GEMMA4_DEVICE must be one of: auto, cpu, cuda")
 
         if self.device != "auto":
             if self.device == "cuda":
@@ -122,8 +76,8 @@ class HuggingFaceSeq2SeqProvider(TranslationProvider):
 
                 if not torch.cuda.is_available():
                     raise RuntimeError(
-                        "HF_DEVICE is set to cuda but no CUDA device is available. "
-                        "Use HF_DEVICE=auto or HF_DEVICE=cpu."
+                        "GEMMA4_DEVICE is set to cuda but no CUDA device is available. "
+                        "Use GEMMA4_DEVICE=auto or GEMMA4_DEVICE=cpu."
                     )
             return self.device
 
@@ -150,47 +104,73 @@ class HuggingFaceSeq2SeqProvider(TranslationProvider):
             return
 
         try:
-            from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
+            from transformers import AutoModelForImageTextToText, AutoProcessor
         except ImportError as exc:
             raise RuntimeError(
-                "transformers and torch must be installed before starting the service."
+                "Gemma 4 requires a recent transformers install. Upgrade requirements before use."
             ) from exc
 
         runtime_device = self._resolve_device()
         torch_dtype = self._resolve_torch_dtype(runtime_device)
+        model_kwargs = {
+            "cache_dir": self.cache_dir,
+            "dtype": torch_dtype,
+            "low_cpu_mem_usage": True,
+        }
 
-        self._tokenizer = AutoTokenizer.from_pretrained(
+        if runtime_device == "cuda":
+            model_kwargs["device_map"] = "auto"
+
+        self._processor = AutoProcessor.from_pretrained(
             self.model_name,
             cache_dir=self.cache_dir,
+            padding_side="left",
         )
-        self._model = AutoModelForSeq2SeqLM.from_pretrained(
+        self._model = AutoModelForImageTextToText.from_pretrained(
             self.model_name,
-            cache_dir=self.cache_dir,
-            torch_dtype=torch_dtype,
-            low_cpu_mem_usage=True,
+            **model_kwargs,
         )
 
-        if runtime_device != "cpu":
-            self._model.to(runtime_device)
+        if runtime_device == "cpu":
+            self._model.to("cpu")
 
         self.runtime_device = runtime_device
         self.runtime_dtype = str(torch_dtype).replace("torch.", "")
 
     def _resolve_source_lang(self, text: str, source_lang: str) -> str:
         resolved_source_lang = detect_source_language(text) if source_lang == "auto" else source_lang
-        if resolved_source_lang not in self._spec.language_codes:
+        if resolved_source_lang not in SUPPORTED_SOURCE_LANGUAGES:
             raise ValueError(f"Unsupported source language: {resolved_source_lang}")
         return resolved_source_lang
 
-    def _resolve_forced_bos_token_id(self, tokenizer: Any, target_lang: str) -> int:
-        target_code = self._spec.language_codes[target_lang]
-        if self._spec.target_token_method == "nllb":
-            if hasattr(tokenizer, "lang_code_to_id"):
-                return tokenizer.lang_code_to_id[target_code]
-            return tokenizer.convert_tokens_to_ids(target_code)
-        if self._spec.target_token_method == "m2m100":
-            return tokenizer.get_lang_id(target_code)
-        raise ValueError(f"Unsupported target token method: {self._spec.target_token_method}")
+    def _build_messages(self, text: str, source_lang: str) -> list[dict[str, object]]:
+        source_label = "English" if source_lang == "en" else "French"
+        instruction = (
+            f"Translate the following {source_label} text into Malagasy. "
+            "Return only the translated Malagasy text. "
+            "Do not explain your answer. Preserve important medical meaning and terminology."
+        )
+
+        return [
+            {
+                "role": "system",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "You are a precise translation engine.",
+                    }
+                ],
+            },
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": f"{instruction}\n\n{source_label}: {text}\nMalagasy:",
+                    }
+                ],
+            },
+        ]
 
     def translate(
         self,
@@ -198,32 +178,33 @@ class HuggingFaceSeq2SeqProvider(TranslationProvider):
         source_lang: str,
         target_lang: str,
     ) -> TranslationResult:
-        if target_lang not in self._spec.language_codes:
+        if target_lang != "mg":
             raise ValueError(f"Unsupported target language: {target_lang}")
 
         resolved_source_lang = self._resolve_source_lang(text, source_lang)
         self._load_model()
-        assert self._tokenizer is not None
+        assert self._processor is not None
         assert self._model is not None
 
-        source_code = self._spec.language_codes[resolved_source_lang]
-        self._tokenizer.src_lang = source_code
-        encoded = self._tokenizer(
-            text,
+        messages = self._build_messages(text, resolved_source_lang)
+        encoded = self._processor.apply_chat_template(
+            messages,
+            tokenize=True,
+            return_dict=True,
             return_tensors="pt",
-            truncation=True,
+            add_generation_prompt=True,
         )
-
-        if self.runtime_device != "cpu":
-            encoded = {key: value.to(self.runtime_device) for key, value in encoded.items()}
+        encoded = encoded.to(self._model.device)
 
         generated_tokens = self._model.generate(
             **encoded,
-            forced_bos_token_id=self._resolve_forced_bos_token_id(self._tokenizer, target_lang),
-            max_length=self.max_length,
+            max_new_tokens=self.max_new_tokens,
+            do_sample=False,
         )
-        translated_text = self._tokenizer.batch_decode(
-            generated_tokens,
+
+        input_length = encoded["input_ids"].shape[-1]
+        translated_text = self._processor.batch_decode(
+            generated_tokens[:, input_length:],
             skip_special_tokens=True,
         )[0].strip()
 

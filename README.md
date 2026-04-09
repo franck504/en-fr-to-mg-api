@@ -16,18 +16,23 @@ Le backend peut changer de modele sans modification de code via:
 - `HF_MODEL_NAME`
 - `HF_MODEL_FAMILY` (`auto`, `nllb`, `m2m100`)
 - `HF_DEVICE` (`auto`, `cpu`, `cuda`)
+- `GEMMA4_MODEL_NAME`
+- `GEMMA4_DEVICE` (`auto`, `cpu`, `cuda`)
+- `GEMMA4_MAX_NEW_TOKENS`
 - `GEMINI_MODEL_NAME`
 - `GEMINI_API_KEY`
 - `GEMINI_MAX_RETRIES`
 
 ## Endpoints
 
-- `GET /health` pour voir les deux providers en meme temps
+- `GET /health` pour voir les trois providers en meme temps
 - `GET /health/gemini` pour l'etat du provider Gemini
 - `GET /health/local_llm` pour l'etat du provider local
+- `GET /health/gemma4` pour l'etat du provider Gemma 4 local
 - `POST /translate` pour utiliser le provider par defaut configure
 - `POST /translate/gemini` pour forcer Gemini
 - `POST /translate/local_llm` pour forcer le modele local
+- `POST /translate/gemma4` pour forcer Gemma 4 local
 
 Exemple de requete:
 
@@ -104,6 +109,7 @@ Notes importantes pour Colab:
 - le runtime `v5e-1 TPU` n'est pas encore branche a `torch_xla` dans ce projet, donc il risque de retomber sur CPU
 - pour le provider `gemini_api`, aucun GPU Colab n'est necessaire car l'inference se fait cote Google
 - pour le free tier Gemini, `gemini-2.5-flash-lite` est un meilleur point de depart que `gemini-2.5-flash` si vous voulez lancer un benchmark plus long
+- pour `gemma4`, utilisez un runtime `T4 GPU` et gardez en tete que `local_llm` et `gemma4` se dechargent mutuellement pour tenir dans la VRAM du Colab gratuit
 
 ## GitHub
 
@@ -159,6 +165,14 @@ python3 eval/run_quality_benchmark.py \
   --translate-path /translate/local_llm
 ```
 
+Exemple contre Gemma 4 dans le meme backend:
+
+```bash
+python3 eval/run_quality_benchmark.py \
+  --base-url http://127.0.0.1:8000 \
+  --translate-path /translate/gemma4
+```
+
 Exemple contre le backend Colab expose par ngrok:
 
 ```bash
@@ -181,6 +195,7 @@ Le backend supporte maintenant:
 - `gemini_api`
 - `nllb`
 - `m2m100`
+- `gemma4`
 
 Exemple pour tester `gemini-2.5-flash-lite`:
 
@@ -209,6 +224,16 @@ export PROVIDER=hf_seq2seq
 export HF_MODEL_NAME=facebook/m2m100_1.2B
 export HF_MODEL_FAMILY=m2m100
 export HF_DEVICE=auto
+uvicorn app.main:app --reload
+```
+
+Exemple pour tester `google/gemma-4-E2B-it`:
+
+```bash
+export PROVIDER=gemma4
+export GEMMA4_MODEL_NAME=google/gemma-4-E2B-it
+export GEMMA4_DEVICE=auto
+export GEMMA4_MAX_NEW_TOKENS=256
 uvicorn app.main:app --reload
 ```
 
