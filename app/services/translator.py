@@ -7,8 +7,8 @@ from app.services.providers.hf_seq2seq import (
     infer_model_family,
 )
 
-
 def build_gemini_provider(settings: Settings) -> TranslationProvider:
+    """Initialise le provider utilisant l'API Google Gemini."""
     return GeminiApiProvider(
         model_name=settings.gemini_model_name,
         api_key=settings.gemini_api_key,
@@ -19,8 +19,8 @@ def build_gemini_provider(settings: Settings) -> TranslationProvider:
         retry_default_delay_seconds=settings.gemini_retry_default_delay_seconds,
     )
 
-
 def build_local_llm_provider(settings: Settings) -> TranslationProvider:
+    """Initialise un provider basé sur un modèle Hugging Face local (NLLB, M2M100, etc.)."""
     model_family = (
         infer_model_family(settings.hf_model_name)
         if settings.hf_model_family == "auto"
@@ -35,8 +35,8 @@ def build_local_llm_provider(settings: Settings) -> TranslationProvider:
         device=settings.hf_device,
     )
 
-
 def build_gemma4_provider(settings: Settings) -> TranslationProvider:
+    """Initialise le provider spécifique pour le modèle Gemma 4."""
     return Gemma4LocalProvider(
         model_name=settings.gemma4_model_name,
         cache_dir=settings.model_cache_dir,
@@ -44,8 +44,8 @@ def build_gemma4_provider(settings: Settings) -> TranslationProvider:
         max_new_tokens=settings.gemma4_max_new_tokens,
     )
 
-
 def build_provider(settings: Settings) -> TranslationProvider:
+    """Usine de création de provider basée sur la configuration globale."""
     if settings.provider == "gemini_api":
         return build_gemini_provider(settings)
 
@@ -83,10 +83,13 @@ def build_provider(settings: Settings) -> TranslationProvider:
             device=settings.hf_device,
         )
 
-    raise ValueError(f"Unsupported provider: {settings.provider}")
-
+    raise ValueError(f"Le provider '{settings.provider}' n'est pas pris en charge.")
 
 class TranslationService:
+    """
+    Service de haut niveau orchestrant les traductions.
+    Il délègue la tâche au provider configuré.
+    """
     def __init__(self, provider: TranslationProvider) -> None:
         self.provider = provider
 
@@ -96,6 +99,7 @@ class TranslationService:
         source_lang: str,
         target_lang: str,
     ) -> TranslationResult:
+        """Exécute une traduction de texte via le provider injecté."""
         return self.provider.translate(
             text=text,
             source_lang=source_lang,

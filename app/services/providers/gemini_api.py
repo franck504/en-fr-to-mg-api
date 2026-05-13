@@ -1,21 +1,22 @@
 from __future__ import annotations
-
 import os
 import re
 import time
-
 from app.services.language_utils import detect_source_language
 from app.services.providers.base import TranslationProvider, TranslationResult
 
-
+# Libellés des langues pour les prompts
 LANGUAGE_LABELS = {
     "en": "English",
     "fr": "French",
     "mg": "Malagasy",
 }
 
-
 class GeminiApiProvider(TranslationProvider):
+    """
+    Provider de traduction utilisant l'API Google Gemini.
+    Gère les tentatives de reconnexion en cas de dépassement de quota (Rate Limit).
+    """
     provider_name = "gemini_api"
 
     def __init__(
@@ -42,18 +43,21 @@ class GeminiApiProvider(TranslationProvider):
 
     @property
     def is_loaded(self) -> bool:
+        """Vérifie si le client API est initialisé."""
         return self._client is not None
 
     def warmup(self) -> None:
+        """Prépare le client au démarrage."""
         self._get_client()
 
     def _get_client(self):
+        """Initialise et retourne le client Gemini GenAI."""
         if self._client is not None:
             return self._client
 
         if not self.api_key:
             raise RuntimeError(
-                "GEMINI_API_KEY is missing. Add it to the environment before starting the Gemini provider."
+                "La clé GEMINI_API_KEY est manquante dans l'environnement."
             )
 
         try:
@@ -61,7 +65,7 @@ class GeminiApiProvider(TranslationProvider):
             from google.genai import types
         except ImportError as exc:
             raise RuntimeError(
-                "google-genai is not installed. Install dependencies before starting the Gemini provider."
+                "La bibliothèque 'google-genai' n'est pas installée."
             ) from exc
 
         timeout_ms = max(int(self.timeout_seconds * 1000), 1000)
@@ -70,6 +74,7 @@ class GeminiApiProvider(TranslationProvider):
         return self._client
 
     def _extract_retry_delay_seconds(self, message: str) -> float:
+        """Extrait le délai de réessai suggéré par l'API en cas de 429."""
         retry_delay_match = re.search(r"retryDelay': '(\d+)s'", message)
         if retry_delay_match:
             return float(retry_delay_match.group(1)) + 1.0
@@ -86,6 +91,7 @@ class GeminiApiProvider(TranslationProvider):
         source_lang: str,
         target_lang: str,
     ) -> str:
+        """Construit le prompt de traduction pour l'IA."""
         source_label = LANGUAGE_LABELS[source_lang]
         target_label = LANGUAGE_LABELS[target_lang]
         return (
@@ -102,12 +108,14 @@ class GeminiApiProvider(TranslationProvider):
         source_lang: str,
         target_lang: str,
     ) -> TranslationResult:
+        """Réalise la traduction via l'API Gemini avec gestion des retries."""
         if target_lang != "mg":
-            raise ValueError(f"Unsupported target language: {target_lang}")
+            raise ValueError(f"Langue cible non prise en charge : {target_lang}")
 
+        # Détection automatique de la langue source si nécessaire
         resolved_source_lang = detect_source_language(text) if source_lang == "auto" else source_lang
         if resolved_source_lang not in {"en", "fr"}:
-            raise ValueError(f"Unsupported source language: {resolved_source_lang}")
+            raise ValueError(f"Langue source non prise en charge : {resolved_source_lang}")
 
         client = self._get_client()
 
@@ -115,9 +123,10 @@ class GeminiApiProvider(TranslationProvider):
             from google.genai import types
         except ImportError as exc:
             raise RuntimeError(
-                "google-genai is not installed. Install dependencies before starting the Gemini provider."
+                "La bibliothèque 'google-genai' est requise."
             ) from exc
 
+        # Boucle de tentatives
         for attempt in range(self.max_retries + 1):
             try:
                 response = client.models.generate_content(
@@ -136,16 +145,18 @@ class GeminiApiProvider(TranslationProvider):
                 break
             except Exception as exc:
                 message = str(exc)
+                # Vérification si l'erreur est liée au Rate Limit
                 is_retryable = "RESOURCE_EXHAUSTED" in message or "429" in message
                 if not is_retryable or attempt >= self.max_retries:
-                    raise RuntimeError(f"Gemini API request failed: {exc}") from exc
+                    raise RuntimeError(f"L'appel à l'API Gemini a échoué : {exc}") from exc
 
+                # Attente avant la prochaine tentative
                 delay_seconds = self._extract_retry_delay_seconds(message)
                 time.sleep(delay_seconds)
 
         translated_text = (response.text or "").strip()
         if not translated_text:
-            raise RuntimeError("Gemini returned an empty translation.")
+            raise RuntimeError("Gemini a renvoyé une traduction vide.")
 
         return TranslationResult(
             text=text,
