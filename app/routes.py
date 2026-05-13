@@ -2,19 +2,18 @@ from fastapi import APIRouter, HTTPException
 from app.schemas import HealthResponse, TranslateRequest, TranslateResponse
 from app.services.translator import TranslationService
 
-# On crée un router pour regrouper les endpoints
+# Define a router to group all translation and meta endpoints
 router = APIRouter()
 
-# Ces services seront injectés ou importés depuis main.py
-# Pour simplifier le refactoring immédiat, on définit des variables globales 
-# qui seront assignées lors de l'importation.
+# Service instances will be assigned or injected from main.py
+# Using local imports within functions to avoid circular dependency issues
 gemini_service = None
 local_llm_service = None
 gemma4_service = None
 default_service = None
 
 def _health_from_provider(provider_instance) -> HealthResponse:
-    """Génère un modèle de santé à partir d'une instance de provider."""
+    """Helper to build a HealthResponse from a provider instance."""
     return HealthResponse(
         status="ok",
         provider=provider_instance.provider_name,
@@ -29,9 +28,10 @@ def _translate_with_service(
     service: TranslationService,
     payload: TranslateRequest,
 ) -> TranslateResponse:
-    """Exécute la traduction en gérant les déchargements de modèles si nécessaire."""
+    """Handles the translation process and manages runtime errors/retries."""
     from app.main import _prepare_provider_for_request
     
+    # Ensure the model is ready and conflicting models are unloaded
     _prepare_provider_for_request(service.provider)
     try:
         result = service.translate(
@@ -48,6 +48,7 @@ def _translate_with_service(
 
 @router.get("/", tags=["meta"])
 def read_root():
+    """Returns basic service metadata and current default provider info."""
     from app.main import provider, settings
     return {
         "name": settings.app_name,
@@ -58,6 +59,7 @@ def read_root():
 
 @router.get("/health", tags=["meta"])
 def healthcheck():
+    """Provides a global health status for the default and secondary providers."""
     from app.main import provider, gemini_provider, local_llm_provider, gemma4_provider
     return {
         "status": "ok",
@@ -71,35 +73,42 @@ def healthcheck():
 
 @router.get("/health/gemini", response_model=HealthResponse, tags=["meta"])
 def healthcheck_gemini():
+    """Check status of the Gemini API provider."""
     from app.main import gemini_provider
     return _health_from_provider(gemini_provider)
 
 @router.get("/health/local_llm", response_model=HealthResponse, tags=["meta"])
 def healthcheck_local_llm():
+    """Check status of the Local LLM (HF) provider."""
     from app.main import local_llm_provider
     return _health_from_provider(local_llm_provider)
 
 @router.get("/health/gemma4", response_model=HealthResponse, tags=["meta"])
 def healthcheck_gemma4():
+    """Check status of the Gemma 4 provider."""
     from app.main import gemma4_provider
     return _health_from_provider(gemma4_provider)
 
 @router.post("/translate", response_model=TranslateResponse, tags=["translation"])
 def translate(payload: TranslateRequest):
+    """Translate using the default provider defined in settings."""
     from app.main import translation_service
     return _translate_with_service(translation_service, payload)
 
 @router.post("/translate/gemini", response_model=TranslateResponse, tags=["translation"])
 def translate_gemini(payload: TranslateRequest):
+    """Force translation via Google Gemini API."""
     from app.main import gemini_translation_service
     return _translate_with_service(gemini_translation_service, payload)
 
 @router.post("/translate/local_llm", response_model=TranslateResponse, tags=["translation"])
 def translate_local_llm(payload: TranslateRequest):
+    """Force translation via Local Hugging Face models."""
     from app.main import local_llm_translation_service
     return _translate_with_service(local_llm_translation_service, payload)
 
 @router.post("/translate/gemma4", response_model=TranslateResponse, tags=["translation"])
 def translate_gemma4(payload: TranslateRequest):
+    """Force translation via local Gemma 4 model."""
     from app.main import gemma4_translation_service
     return _translate_with_service(gemma4_translation_service, payload)

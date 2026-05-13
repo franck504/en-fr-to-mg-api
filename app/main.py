@@ -9,11 +9,11 @@ from app.services.translator import (
 )
 from app.routes import router
 
-# Chargement de la configuration
+# Load application settings
 settings = get_settings()
 
-# Initialisation des providers et des services de traduction
-# Ces instances sont partagées à travers l'application.
+# Initialize providers and translation services
+# These instances are shared across the application.
 gemini_provider = build_gemini_provider(settings)
 gemini_translation_service = TranslationService(gemini_provider)
 
@@ -25,7 +25,7 @@ gemma4_translation_service = TranslationService(gemma4_provider)
 
 def _resolve_default_provider():
     """
-    Détermine le provider à utiliser par défaut en fonction de la configuration.
+    Determines which provider to use as the default based on settings.
     """
     if settings.provider == "gemini_api":
         return gemini_provider
@@ -33,20 +33,20 @@ def _resolve_default_provider():
         return gemma4_provider
     if settings.provider in {"hf_seq2seq", "local_llm", "local_nllb", "local_m2m100"}:
         return local_llm_provider
-    raise ValueError(f"Le provider '{settings.provider}' n'est pas pris en charge.")
+    raise ValueError(f"Provider '{settings.provider}' is not supported.")
 
-# Provider et service par défaut
+# Setup default provider and service
 provider = _resolve_default_provider()
 translation_service = TranslationService(provider)
 
 def _unload_provider(provider_instance) -> None:
-    """Décharge un modèle de la mémoire."""
+    """Unloads a model from memory to free up resources."""
     provider_instance.unload()
 
 def _prepare_provider_for_request(provider_instance) -> None:
     """
-    Gère la coexistence des modèles en mémoire. 
-    Certains modèles lourds ne peuvent pas résider simultanément sur le même GPU.
+    Manages model coexistence in memory. 
+    Prevents conflicting large models from occupying the same GPU resources simultaneously.
     """
     model_family = getattr(provider_instance, "model_family", "unknown")
     if model_family in {"nllb", "m2m100"}:
@@ -57,20 +57,20 @@ def _prepare_provider_for_request(provider_instance) -> None:
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     """
-    Gestion du cycle de vie de l'application.
-    Permet de pré-charger les modèles au démarrage si configuré.
+    Handles application lifecycle events.
+    Optionally warms up the default provider if configured to load on startup.
     """
     if settings.load_model_on_startup:
         provider.warmup()
     yield
 
-# Création de l'application FastAPI
+# Create the FastAPI application instance
 app = FastAPI(
     title=settings.app_name,
     version="0.1.0",
-    description="Service de traduction EN/FR vers Malgache utilisant des modèles IA.",
+    description="Translation service for EN/FR to Malagasy using various AI models.",
     lifespan=lifespan,
 )
 
-# Inclusion des routes
+# Attach routes to the application
 app.include_router(router)

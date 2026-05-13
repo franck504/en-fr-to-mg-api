@@ -8,7 +8,7 @@ from app.services.providers.hf_seq2seq import (
 )
 
 def build_gemini_provider(settings: Settings) -> TranslationProvider:
-    """Initialise le provider utilisant l'API Google Gemini."""
+    """Initializes the provider using Google Gemini API."""
     return GeminiApiProvider(
         model_name=settings.gemini_model_name,
         api_key=settings.gemini_api_key,
@@ -20,7 +20,7 @@ def build_gemini_provider(settings: Settings) -> TranslationProvider:
     )
 
 def build_local_llm_provider(settings: Settings) -> TranslationProvider:
-    """Initialise un provider basé sur un modèle Hugging Face local (NLLB, M2M100, etc.)."""
+    """Initializes a provider based on a local Hugging Face model (NLLB, M2M100, etc.)."""
     model_family = (
         infer_model_family(settings.hf_model_name)
         if settings.hf_model_family == "auto"
@@ -36,7 +36,7 @@ def build_local_llm_provider(settings: Settings) -> TranslationProvider:
     )
 
 def build_gemma4_provider(settings: Settings) -> TranslationProvider:
-    """Initialise le provider spécifique pour le modèle Gemma 4."""
+    """Initializes the specialized provider for the Gemma 4 model."""
     return Gemma4LocalProvider(
         model_name=settings.gemma4_model_name,
         cache_dir=settings.model_cache_dir,
@@ -45,7 +45,7 @@ def build_gemma4_provider(settings: Settings) -> TranslationProvider:
     )
 
 def build_provider(settings: Settings) -> TranslationProvider:
-    """Usine de création de provider basée sur la configuration globale."""
+    """Provider factory based on global application settings."""
     if settings.provider == "gemini_api":
         return build_gemini_provider(settings)
 
@@ -83,12 +83,12 @@ def build_provider(settings: Settings) -> TranslationProvider:
             device=settings.hf_device,
         )
 
-    raise ValueError(f"Le provider '{settings.provider}' n'est pas pris en charge.")
+    raise ValueError(f"Provider '{settings.provider}' is not supported.")
 
 class TranslationService:
     """
-    Service de haut niveau orchestrant les traductions.
-    Il délègue la tâche au provider configuré.
+    High-level service orchestrating translations.
+    Delegates actual work to the injected provider.
     """
     def __init__(self, provider: TranslationProvider) -> None:
         self.provider = provider
@@ -99,7 +99,7 @@ class TranslationService:
         source_lang: str,
         target_lang: str,
     ) -> TranslationResult:
-        """Exécute une traduction de texte via le provider injecté."""
+        """Performs a translation using the injected provider."""
         return self.provider.translate(
             text=text,
             source_lang=source_lang,

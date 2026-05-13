@@ -1,53 +1,32 @@
 from __future__ import annotations
-
 from collections.abc import Iterable
-
 from app.services.providers.base import TranslationProvider, TranslationResult
 
-
+# Language codes specific to NLLB models
 NLLB_LANGUAGE_CODES = {
     "en": "eng_Latn",
     "fr": "fra_Latn",
     "mg": "plt_Latn",
 }
 
+# Frequent keywords for language scoring
 FRENCH_HINTS = {
-    "bonjour",
-    "avec",
-    "pour",
-    "être",
-    "dans",
-    "nous",
-    "vous",
-    "une",
-    "des",
-    "pas",
-    "est",
-    "merci",
+    "bonjour", "avec", "pour", "être", "dans", "nous", 
+    "vous", "une", "des", "pas", "est", "merci",
 }
 
 ENGLISH_HINTS = {
-    "hello",
-    "with",
-    "for",
-    "the",
-    "and",
-    "you",
-    "we",
-    "are",
-    "this",
-    "that",
-    "please",
-    "thank",
+    "hello", "with", "for", "the", "and", "you", 
+    "we", "are", "this", "that", "please", "thank",
 }
 
-
 def _score_language(text: str, hints: Iterable[str]) -> int:
+    """Computes a score for a language based on keyword frequency."""
     lowered = f" {text.lower()} "
     return sum(1 for hint in hints if f" {hint} " in lowered)
 
-
 def detect_source_language(text: str) -> str:
+    """Attempts to detect the source language (French or English)."""
     french_score = _score_language(text, FRENCH_HINTS)
     english_score = _score_language(text, ENGLISH_HINTS)
 
@@ -56,8 +35,11 @@ def detect_source_language(text: str) -> str:
 
     return "fr" if french_score > english_score else "en"
 
-
 class LocalNllbProvider(TranslationProvider):
+    """
+    Deprecated or legacy provider for NLLB specifically. 
+    Note: HuggingFaceSeq2SeqProvider is preferred for general use.
+    """
     provider_name = "local_nllb"
 
     def __init__(
@@ -74,21 +56,22 @@ class LocalNllbProvider(TranslationProvider):
 
     @property
     def is_loaded(self) -> bool:
+        """Checks if tokenizer and model are loaded in memory."""
         return self._tokenizer is not None and self._model is not None
 
     def warmup(self) -> None:
+        """Pre-loads the model for faster initial translation."""
         self._load_model()
 
     def _load_model(self) -> None:
+        """Loads the NLLB model and tokenizer."""
         if self.is_loaded:
             return
 
         try:
             from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
         except ImportError as exc:
-            raise RuntimeError(
-                "transformers is not installed. Install dependencies before starting the service."
-            ) from exc
+            raise RuntimeError("transformers library is not installed.") from exc
 
         self._tokenizer = AutoTokenizer.from_pretrained(
             self.model_name,
@@ -105,6 +88,7 @@ class LocalNllbProvider(TranslationProvider):
         source_lang: str,
         target_lang: str,
     ) -> TranslationResult:
+        """Executes a translation using the local NLLB model."""
         if target_lang not in NLLB_LANGUAGE_CODES:
             raise ValueError(f"Unsupported target language: {target_lang}")
 
@@ -119,11 +103,8 @@ class LocalNllbProvider(TranslationProvider):
         assert self._model is not None
 
         self._tokenizer.src_lang = NLLB_LANGUAGE_CODES[resolved_source_lang]
-        encoded = self._tokenizer(
-            text,
-            return_tensors="pt",
-            truncation=True,
-        )
+        encoded = self._tokenizer(text, return_tensors="pt", truncation=True)
+        
         generated_tokens = self._model.generate(
             **encoded,
             forced_bos_token_id=self._tokenizer.convert_tokens_to_ids(
@@ -131,10 +112,7 @@ class LocalNllbProvider(TranslationProvider):
             ),
             max_length=self.max_length,
         )
-        translated_text = self._tokenizer.batch_decode(
-            generated_tokens,
-            skip_special_tokens=True,
-        )[0].strip()
+        translated_text = self._tokenizer.batch_decode(generated_tokens, skip_special_tokens=True)[0].strip()
 
         return TranslationResult(
             text=text,

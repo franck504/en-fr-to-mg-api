@@ -1,13 +1,13 @@
 from pydantic import BaseModel, Field, field_validator
 
-# Langues prises en charge
+# Supported languages
 SUPPORTED_SOURCE_LANGUAGES = {"auto", "en", "fr"}
 SUPPORTED_TARGET_LANGUAGES = {"mg"}
 
 class TranslateRequest(BaseModel):
     """
-    Modèle de requête pour une demande de traduction.
-    On valide la longueur du texte et les langues demandées.
+    Request model for translation tasks.
+    Validates text length and ensures source/target languages are supported.
     """
     text: str = Field(..., min_length=1, max_length=5000)
     source_lang: str = Field(default="auto")
@@ -18,7 +18,7 @@ class TranslateRequest(BaseModel):
     def validate_text(cls, value: str) -> str:
         value = value.strip()
         if not value:
-            raise ValueError("Le texte à traduire ne peut pas être vide.")
+            raise ValueError("The text to translate cannot be empty.")
         return value
 
     @field_validator("source_lang")
@@ -26,7 +26,7 @@ class TranslateRequest(BaseModel):
     def validate_source_lang(cls, value: str) -> str:
         normalized = value.strip().lower()
         if normalized not in SUPPORTED_SOURCE_LANGUAGES:
-            raise ValueError(f"La langue source doit être l'une des suivantes : {', '.join(SUPPORTED_SOURCE_LANGUAGES)}")
+            raise ValueError(f"source_lang must be one of: {', '.join(SUPPORTED_SOURCE_LANGUAGES)}")
         return normalized
 
     @field_validator("target_lang")
@@ -34,13 +34,13 @@ class TranslateRequest(BaseModel):
     def validate_target_lang(cls, value: str) -> str:
         normalized = value.strip().lower()
         if normalized not in SUPPORTED_TARGET_LANGUAGES:
-            raise ValueError(f"La langue cible doit être : {', '.join(SUPPORTED_TARGET_LANGUAGES)}")
+            raise ValueError(f"target_lang must be: {', '.join(SUPPORTED_TARGET_LANGUAGES)}")
         return normalized
 
 class TranslateResponse(BaseModel):
     """
-    Réponse renvoyée après une traduction réussie.
-    Contient le texte original, sa traduction et des métadonnées sur le provider utilisé.
+    Response model returned after a successful translation.
+    Contains the original text, its translation, and provider metadata.
     """
     text: str
     translated_text: str
@@ -51,7 +51,7 @@ class TranslateResponse(BaseModel):
 
 class HealthResponse(BaseModel):
     """
-    État de santé d'un provider de traduction spécifique.
+    Health and status model for a specific translation provider.
     """
     status: str
     provider: str

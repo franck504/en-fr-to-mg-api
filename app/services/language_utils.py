@@ -1,7 +1,7 @@
 from __future__ import annotations
 from collections.abc import Iterable
 
-# Mots-clés fréquents pour aider à la détection de la langue
+# Frequent keywords to help with language detection
 FRENCH_HINTS = {
     "bonjour", "avec", "pour", "etre", "dans", "nous", "vous", 
     "une", "des", "pas", "est", "merci",
@@ -13,19 +13,19 @@ ENGLISH_HINTS = {
 }
 
 def _score_language(text: str, hints: Iterable[str]) -> int:
-    """Attribue un score à une langue en fonction de la présence de mots-clés."""
+    """Scores a language based on the presence of specific keywords."""
     lowered = f" {text.lower()} "
     return sum(1 for hint in hints if f" {hint} " in lowered)
 
 def detect_source_language(text: str) -> str:
     """
-    Tente de détecter si le texte est en français ou en anglais.
-    Se base sur des mots fréquents et la présence de caractères accentués.
+    Attempts to detect whether the text is in French or English.
+    Uses frequent words and the presence of accented characters as indicators.
     """
     french_score = _score_language(text, FRENCH_HINTS)
     english_score = _score_language(text, ENGLISH_HINTS)
 
-    # Les caractères accentués sont un fort indicateur du français
+    # Accented characters are a strong indicator of French language
     if any(character in text.lower() for character in "àâæçéèêëîïôœùûüÿ"):
         french_score += 2
 

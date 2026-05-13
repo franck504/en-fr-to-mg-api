@@ -1,15 +1,15 @@
 from __future__ import annotations
-
 import gc
-
 from app.services.language_utils import detect_source_language
 from app.services.providers.base import TranslationProvider, TranslationResult
 
-
 SUPPORTED_SOURCE_LANGUAGES = {"en", "fr"}
 
-
 class Gemma4LocalProvider(TranslationProvider):
+    """
+    Local translation provider using the Gemma 4 model via Hugging Face Transformers.
+    Manages GPU/CPU loading and inference lifecycle.
+    """
     provider_name = "gemma4"
     model_family = "gemma4"
 
@@ -31,12 +31,15 @@ class Gemma4LocalProvider(TranslationProvider):
 
     @property
     def is_loaded(self) -> bool:
+        """Checks if the processor and model are currently in memory."""
         return self._processor is not None and self._model is not None
 
     def warmup(self) -> None:
+        """Pre-loads the model into memory."""
         self._load_model()
 
     def unload(self) -> None:
+        """Unloads the model and clears GPU cache to free up resources."""
         if not self.is_loaded:
             return
 
@@ -62,6 +65,7 @@ class Gemma4LocalProvider(TranslationProvider):
         gc.collect()
 
     def _resolve_device(self) -> str:
+        """Detects the best available hardware device (CPU or CUDA)."""
         if self.device not in {"auto", "cpu", "cuda"}:
             raise RuntimeError("GEMMA4_DEVICE must be one of: auto, cpu, cuda")
 
@@ -76,8 +80,7 @@ class Gemma4LocalProvider(TranslationProvider):
 
                 if not torch.cuda.is_available():
                     raise RuntimeError(
-                        "GEMMA4_DEVICE is set to cuda but no CUDA device is available. "
-                        "Use GEMMA4_DEVICE=auto or GEMMA4_DEVICE=cpu."
+                        "GEMMA4_DEVICE is set to cuda but no CUDA device is available."
                     )
             return self.device
 
@@ -93,13 +96,14 @@ class Gemma4LocalProvider(TranslationProvider):
         return "cpu"
 
     def _resolve_torch_dtype(self, runtime_device: str):
+        """Determines the appropriate tensor precision for the hardware."""
         import torch
-
         if runtime_device == "cuda":
             return torch.float16
         return torch.float32
 
     def _load_model(self) -> None:
+        """Loads the Gemma 4 model and processor from Hugging Face or cache."""
         if self.is_loaded:
             return
 
@@ -107,7 +111,7 @@ class Gemma4LocalProvider(TranslationProvider):
             from transformers import AutoModelForImageTextToText, AutoProcessor
         except ImportError as exc:
             raise RuntimeError(
-                "Gemma 4 requires a recent transformers install. Upgrade requirements before use."
+                "Gemma 4 requires a recent transformers installation."
             ) from exc
 
         runtime_device = self._resolve_device()
@@ -138,12 +142,14 @@ class Gemma4LocalProvider(TranslationProvider):
         self.runtime_dtype = str(torch_dtype).replace("torch.", "")
 
     def _resolve_source_lang(self, text: str, source_lang: str) -> str:
+        """Resolves source language, using detection if 'auto' is specified."""
         resolved_source_lang = detect_source_language(text) if source_lang == "auto" else source_lang
         if resolved_source_lang not in SUPPORTED_SOURCE_LANGUAGES:
             raise ValueError(f"Unsupported source language: {resolved_source_lang}")
         return resolved_source_lang
 
     def _build_messages(self, text: str, source_lang: str) -> list[dict[str, object]]:
+        """Prepares the conversation messages for the chat-based model."""
         source_label = "English" if source_lang == "en" else "French"
         instruction = (
             f"Translate the following {source_label} text into Malagasy. "
@@ -178,6 +184,7 @@ class Gemma4LocalProvider(TranslationProvider):
         source_lang: str,
         target_lang: str,
     ) -> TranslationResult:
+        """Executes translation using local inference."""
         if target_lang != "mg":
             raise ValueError(f"Unsupported target language: {target_lang}")
 
