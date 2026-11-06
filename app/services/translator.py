@@ -1,0 +1,91 @@
+from app.config import Settings
+from app.services.providers.base import TranslationProvider, TranslationResult
+from app.services.providers.gemma4_local import Gemma4LocalProvider
+from app.services.providers.hf_seq2seq import (
+    HuggingFaceSeq2SeqProvider,
+    infer_model_family,
+)
+
+def build_local_llm_provider(settings: Settings) -> TranslationProvider:
+    """Initializes a provider based on a local Hugging Face Seq2Seq model (NLLB, M2M100)."""
+    model_family = (
+        infer_model_family(settings.hf_model_name)
+        if settings.hf_model_family == "auto"
+        else settings.hf_model_family
+    )
+    return HuggingFaceSeq2SeqProvider(
+        provider_name="local_llm",
+        model_name=settings.hf_model_name,
+        model_family=model_family,
+        cache_dir=settings.model_cache_dir,
+        max_length=settings.translation_max_length,
+        device=settings.hf_device,
+    )
+
+def build_gemma4_provider(settings: Settings) -> TranslationProvider:
+    """Initializes the specialized local provider for the Gemma 4 model."""
+    return Gemma4LocalProvider(
+        model_name=settings.gemma4_model_name,
+        cache_dir=settings.model_cache_dir,
+        device=settings.gemma4_device,
+        max_new_tokens=settings.gemma4_max_new_tokens,
+    )
+
+def build_provider(settings: Settings) -> TranslationProvider:
+    """Provider factory based on global application settings."""
+    if settings.provider == "gemma4":
+        return build_gemma4_provider(settings)
+
+    if settings.provider in {"hf_seq2seq", "local_llm", "local_nllb", "local_m2m100"}:
+        if settings.provider == "local_nllb":
+            model_family = "nllb"
+            provider_name = "local_nllb"
+        elif settings.provider == "local_m2m100":
+            model_family = "m2m100"
+            provider_name = "local_m2m100"
+        elif settings.provider == "local_llm":
+            model_family = (
+                infer_model_family(settings.hf_model_name)
+                if settings.hf_model_family == "auto"
+                else settings.hf_model_family
+            )
+            provider_name = "local_llm"
+        else:
+            model_family = (
+                infer_model_family(settings.hf_model_name)
+                if settings.hf_model_family == "auto"
+                else settings.hf_model_family
+            )
+            provider_name = settings.provider
+
+        return HuggingFaceSeq2SeqProvider(
+            provider_name=provider_name,
+            model_name=settings.hf_model_name,
+            model_family=model_family,
+            cache_dir=settings.model_cache_dir,
+            max_length=settings.translation_max_length,
+            device=settings.hf_device,
+        )
+
+    raise ValueError(f"Local provider '{settings.provider}' is not supported.")
+
+class TranslationService:
+    """
+    High-level service orchestrating translations.
+    Delegates actual work to the injected local provider.
+    """
+    def __init__(self, provider: TranslationProvider) -> None:
+        self.provider = provider
+
+    def translate(
+        self,
+        text: str,
+        source_lang: str = "auto",
+        target_lang: str = "mg",
+    ) -> TranslationResult:
+        """Performs a translation using the injected provider."""
+        return self.provider.translate(
+            text=text,
+            source_lang=source_lang,
+            target_lang=target_lang,
+        )

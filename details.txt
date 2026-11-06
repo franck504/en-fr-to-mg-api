@@ -1,0 +1,10 @@
+type : service, backend
+fonctionnalite : traduction de texte en fr ou en vers mg (francais ou anglais ---> malgache)
+principe : utilisation exclusive de modeles locaux open source (Hugging Face Seq2Seq: NLLB, M2M100, Gemma 4) sans appel API cloud payant
+infrastructure : Google Colab et Kaggle (avec GPU gratuit T4/P100), exposition publique via ngrok (pas de Docker)
+compatibilite : multi-standard compatible avec tous les clients et SDKs populaires :
+  - OpenAI (/v1/chat/completions, /v1/models)
+  - Anthropic (/v1/messages)
+  - Ollama (/api/chat, /api/generate, /api/tags)
+  - Natif REST (/translate, /translate/local_llm, /translate/gemma4, /health)
+cout : totalement gratuit (modeles open source + GPU Colab/Kaggle + ngrok gratuit)
