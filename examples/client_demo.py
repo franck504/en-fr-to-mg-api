@@ -20,7 +20,11 @@ from urllib import error, request
 
 
 def build_headers(api_key: str | None) -> dict[str, str]:
-    headers = {"Content-Type": "application/json"}
+    headers = {
+        "Content-Type": "application/json",
+        "ngrok-skip-browser-warning": "1",
+        "User-Agent": "TranslationClient/1.0",
+    }
     if api_key:
         headers["Authorization"] = f"Bearer {api_key}"
         headers["X-API-Key"] = api_key

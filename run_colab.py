@@ -1,10 +1,36 @@
 import os
 from pathlib import Path
+import threading
+import time
 import uvicorn
 
 
 def as_bool(value: str) -> bool:
     return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def start_keep_alive_thread():
+    """
+    Runs in the background and prints a heartbeat every 3 minutes.
+    This maintains stdout activity in Colab/Kaggle and prevents kernel idle suspension.
+    """
+    def _worker():
+        start_time = time.time()
+        while True:
+            time.sleep(180)  # Every 3 minutes
+            uptime_min = int((time.time() - start_time) / 60)
+            vram_info = ""
+            try:
+                import torch
+                if torch.cuda.is_available():
+                    alloc = torch.cuda.memory_allocated() / 1024 / 1024
+                    vram_info = f" | GPU VRAM: {alloc:.1f} MB"
+            except Exception:
+                pass
+            print(f"💓 [Keep-Alive Heartbeat] Serveur actif | Uptime: {uptime_min} min{vram_info}", flush=True)
+
+    thread = threading.Thread(target=_worker, daemon=True)
+    thread.start()
 
 
 def resolve_api_key() -> str | None:
@@ -109,7 +135,8 @@ def configure_environment() -> tuple[str, int]:
     model_cache_dir = os.getenv("MODEL_CACHE_DIR", default_cache)
     Path(model_cache_dir).mkdir(parents=True, exist_ok=True)
     os.environ.setdefault("MODEL_CACHE_DIR", model_cache_dir)
-    os.environ.setdefault("LOAD_MODEL_ON_STARTUP", "false")
+    # Preload the model on startup so the first external request is instant
+    os.environ.setdefault("LOAD_MODEL_ON_STARTUP", "true")
 
     # Verify and set API_KEY from Secrets
     api_key = resolve_api_key()
@@ -208,6 +235,7 @@ def print_banner(public_url: str | None, port: int):
     print(f"📖 Swagger Docs:      {base}/docs")
     print(f"🔍 Health Check:      {base}/health")
     print(f"🔒 Authentification:  Actif (Clé API requise via header 'Authorization' ou 'X-API-Key')")
+    print(f"💓 Keep-Alive:        Actif (Heartbeat toutes les 3 minutes)")
     print("-" * 70)
     print("API Endpoints & Compatibilités :")
     print(f"  • Native REST:  POST {base}/translate")
@@ -228,6 +256,8 @@ def main() -> None:
             tunnel, public_url = start_ngrok_tunnel(port)
 
         print_banner(public_url, port)
+        # Start heartbeat to keep Colab/Kaggle active
+        start_keep_alive_thread()
         uvicorn.run("app.main:app", host=host, port=port, reload=False)
     finally:
         if tunnel is not None:
