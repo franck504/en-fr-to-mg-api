@@ -67,12 +67,15 @@ en-fr-to-mg-api/
 
 ## ⚡ Déploiement Cloud Gratuit (Colab ou Kaggle)
 
-Les deux notebooks utilisent le **gestionnaire de Secrets natif** de chaque plateforme pour protéger votre token ngrok sans jamais l'écrire en clair dans le code.
+Les deux notebooks utilisent le **gestionnaire de Secrets natif** de chaque plateforme pour protéger votre token ngrok et votre clé API sans jamais les écrire en clair dans le code.
 
 ### Option A : Déploiement sur Google Colab
 1. Ouvrez [`notebooks/colab_backend_launcher.ipynb`](notebooks/colab_backend_launcher.ipynb) dans [Google Colab](https://colab.research.google.com).
 2. Activez le GPU : *Exécution* > *Changer le type d'exécution* > **GPU T4**.
-3. Ajoutez votre token dans les Secrets : cliquez sur l'icône **Clé 🔑 (Secrets)** à gauche, ajoutez `NGROK_AUTHTOKEN` avec votre token gratuit depuis [dashboard.ngrok.com](https://dashboard.ngrok.com), et cochez *Accès au notebook*.
+3. Ajoutez vos **2 Secrets** dans le volet vertical à gauche (icône **Clé 🔑 Secrets**) :
+   - `NGROK_AUTHTOKEN` : Votre token gratuit depuis [dashboard.ngrok.com](https://dashboard.ngrok.com)
+   - `API_KEY` : La clé secrète de votre choix pour sécuriser l'accès à votre API (ex: `secret_123`)
+   *(Cochez "Accès au notebook" pour chacun).*
 4. Exécutez les cellules (`Exécution > Tout exécuter`) : l'URL publique s'affiche !
 
 ### Option B : Déploiement sur Kaggle
@@ -80,8 +83,18 @@ Les deux notebooks utilisent le **gestionnaire de Secrets natif** de chaque plat
 2. Dans le panneau de droite (*Session options*) :
    - Cochez **Internet ON**.
    - Dans *Accelerator*, choisissez **GPU T4 x2** ou **GPU P100**.
-3. Dans le menu supérieur : **Add-ons** > **Secrets** > ajoutez `NGROK_AUTHTOKEN` avec votre token.
+3. Dans le menu supérieur : **Add-ons** > **Secrets** > ajoutez les 2 secrets :
+   - `NGROK_AUTHTOKEN` (votre token ngrok)
+   - `API_KEY` (votre clé API personnalisée)
 4. Exécutez le notebook : l'URL publique s'affiche !
+
+---
+
+## 🔒 Authentification par Clé API
+
+Tous les endpoints de traduction requièrent la clé API définie dans le secret `API_KEY` :
+- Soit via le header standard : `Authorization: Bearer <API_KEY>`
+- Soit via le header : `X-API-Key: <API_KEY>`
 
 ---
 
@@ -110,15 +123,15 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
 ## 🔌 Utilisation : Exemples Multi-Standards
 
-Remplacez `http://localhost:8000` par votre URL ngrok si déployé sur Colab/Kaggle.
+Remplacez `https://votre-url.ngrok-free.app` par votre URL et `VOTRE_CLE_API` par votre clé.
 
 ### 1. Via le SDK Officiel OpenAI (Python)
 ```python
 from openai import OpenAI
 
 client = OpenAI(
-    base_url="http://localhost:8000/v1",
-    api_key="not-needed",
+    base_url="https://votre-url.ngrok-free.app/v1",
+    api_key="VOTRE_CLE_API",
 )
 
 response = client.chat.completions.create(
@@ -136,8 +149,8 @@ print(response.choices[0].message.content)
 from anthropic import Anthropic
 
 client = Anthropic(
-    base_url="http://localhost:8000",
-    api_key="not-needed",
+    base_url="https://votre-url.ngrok-free.app",
+    api_key="VOTRE_CLE_API",
 )
 
 response = client.messages.create(
@@ -155,7 +168,10 @@ print(response.content[0].text)
 ```python
 import ollama
 
-client = ollama.Client(host="http://localhost:8000")
+client = ollama.Client(
+    host="https://votre-url.ngrok-free.app",
+    headers={"Authorization": "Bearer VOTRE_CLE_API"},
+)
 
 # Chat
 response = client.chat(
@@ -163,10 +179,6 @@ response = client.chat(
     messages=[{"role": "user", "content": "Please apply this cream twice daily."}],
 )
 print(response["message"]["content"])
-
-# Generate
-gen = client.generate(model="nllb", prompt="Good morning my friend")
-print(gen["response"])
 ```
 
 ### 4. Via LangChain
@@ -174,8 +186,8 @@ print(gen["response"])
 from langchain_openai import ChatOpenAI
 
 llm = ChatOpenAI(
-    base_url="http://localhost:8000/v1",
-    api_key="not-needed",
+    base_url="https://votre-url.ngrok-free.app/v1",
+    api_key="VOTRE_CLE_API",
     model="nllb",
 )
 result = llm.invoke("Unfortunately, you have eczema. Keep your skin moisturized.")
@@ -184,8 +196,9 @@ print(result.content)
 
 ### 5. Via l'API REST Native (cURL)
 ```bash
-curl -X POST http://localhost:8000/translate \
+curl -X POST https://votre-url.ngrok-free.app/translate \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer VOTRE_CLE_API" \
   -d '{
     "text": "The patient shows moderate skin inflammation.",
     "source_lang": "auto",

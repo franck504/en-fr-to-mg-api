@@ -14,6 +14,9 @@ class Settings(BaseSettings):
     host: str = Field(default="0.0.0.0")
     port: int = Field(default=8000)
     
+    # API Key authentication (configured strictly via Secrets or env, no auto-generation)
+    api_key: str | None = Field(default=None)
+    
     # Selected default provider (hf_seq2seq or gemma4)
     provider: str = Field(default="hf_seq2seq")
     

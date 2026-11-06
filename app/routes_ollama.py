@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from app.config import get_settings
 from app.schemas_compat import (
     OllamaChatRequest,
@@ -16,8 +16,13 @@ from app.services.dispatcher import (
     extract_text_from_messages,
     resolve_service_by_model,
 )
+from app.services.security import verify_api_key
 
-router = APIRouter(prefix="/api", tags=["Ollama Compatibility"])
+router = APIRouter(
+    prefix="/api",
+    tags=["Ollama Compatibility"],
+    dependencies=[Depends(verify_api_key)],
+)
 settings = get_settings()
 
 def _current_iso_timestamp() -> str:
@@ -73,7 +78,7 @@ def list_tags():
 def ollama_chat(request: OllamaChatRequest):
     """
     Ollama /api/chat compatibility endpoint.
-    Translates chat message text to Malagasy.
+    Translates chat message text to Malagasy (requires API key).
     """
     text_to_translate = extract_text_from_messages(request.messages)
     if not text_to_translate:
@@ -110,7 +115,7 @@ def ollama_chat(request: OllamaChatRequest):
 def ollama_generate(request: OllamaGenerateRequest):
     """
     Ollama /api/generate compatibility endpoint.
-    Translates raw prompt text to Malagasy.
+    Translates raw prompt text to Malagasy (requires API key).
     """
     text_to_translate = request.prompt.strip()
     if not text_to_translate:

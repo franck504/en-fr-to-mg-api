@@ -1,6 +1,6 @@
 import time
 import uuid
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from app.config import get_settings
 from app.schemas_compat import (
     ChatCompletionChoice,
@@ -16,8 +16,13 @@ from app.services.dispatcher import (
     extract_text_from_messages,
     resolve_service_by_model,
 )
+from app.services.security import verify_api_key
 
-router = APIRouter(prefix="/v1", tags=["OpenAI Compatibility"])
+router = APIRouter(
+    prefix="/v1",
+    tags=["OpenAI Compatibility"],
+    dependencies=[Depends(verify_api_key)],
+)
 settings = get_settings()
 
 @router.get("/models", response_model=ModelListResponse)

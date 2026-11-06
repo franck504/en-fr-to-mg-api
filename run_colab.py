@@ -7,6 +7,39 @@ def as_bool(value: str) -> bool:
     return value.strip().lower() in {"1", "true", "yes", "on"}
 
 
+def resolve_api_key() -> str | None:
+    """
+    Attempts to retrieve the API key from:
+    1. Environment variable API_KEY
+    2. Google Colab Secrets (userdata)
+    3. Kaggle Secrets (UserSecretsClient)
+    """
+    token = os.getenv("API_KEY")
+    if token and token != "replace_me":
+        return token
+
+    # Attempt retrieval from Google Colab Secrets
+    try:
+        from google.colab import userdata
+        token = userdata.get("API_KEY")
+        if token:
+            return token
+    except Exception:
+        pass
+
+    # Attempt retrieval from Kaggle Secrets
+    try:
+        from kaggle_secrets import UserSecretsClient
+        user_secrets = UserSecretsClient()
+        token = user_secrets.get_secret("API_KEY")
+        if token:
+            return token
+    except Exception:
+        pass
+
+    return None
+
+
 def resolve_ngrok_token() -> str | None:
     """
     Attempts to retrieve the ngrok authtoken from:
@@ -54,6 +87,16 @@ def configure_environment() -> tuple[str, int]:
     Path(model_cache_dir).mkdir(parents=True, exist_ok=True)
     os.environ.setdefault("MODEL_CACHE_DIR", model_cache_dir)
     os.environ.setdefault("LOAD_MODEL_ON_STARTUP", "false")
+
+    # Verify and set API_KEY from Secrets
+    api_key = resolve_api_key()
+    if not api_key:
+        raise RuntimeError(
+            "API_KEY introuvable. "
+            "Sur Google Colab : ajoutez le secret 'API_KEY' dans le volet Secrets (icône clé 🔑 à gauche). "
+            "Sur Kaggle : ajoutez le secret 'API_KEY' via le menu Add-ons > Secrets."
+        )
+    os.environ["API_KEY"] = api_key
 
     return host, port
 
@@ -108,7 +151,12 @@ def start_ngrok_tunnel(port: int):
         )
 
     try:
-        listener = ngrok.forward(port, authtoken=auth_token)
+        domain = os.getenv("NGROK_DOMAIN")
+        kwargs = {"authtoken": auth_token}
+        if domain:
+            kwargs["domain"] = domain
+
+        listener = ngrok.forward(port, **kwargs)
     except Exception as exc:
         message = str(exc)
         if "ERR_NGROK_334" in message or "already online" in message:
@@ -136,6 +184,7 @@ def print_banner(public_url: str | None, port: int):
     print(f"📡 Base URL:          {base}")
     print(f"📖 Swagger Docs:      {base}/docs")
     print(f"🔍 Health Check:      {base}/health")
+    print(f"🔒 Authentification:  Actif (Clé API requise via header 'Authorization' ou 'X-API-Key')")
     print("-" * 70)
     print("API Endpoints & Compatibilités :")
     print(f"  • Native REST:  POST {base}/translate")

@@ -1,5 +1,5 @@
 import uuid
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from app.schemas_compat import (
     AnthropicContentBlock,
     AnthropicMessageRequest,
@@ -11,8 +11,13 @@ from app.services.dispatcher import (
     extract_text_from_messages,
     resolve_service_by_model,
 )
+from app.services.security import verify_api_key
 
-router = APIRouter(prefix="/v1", tags=["Anthropic Compatibility"])
+router = APIRouter(
+    prefix="/v1",
+    tags=["Anthropic Compatibility"],
+    dependencies=[Depends(verify_api_key)],
+)
 
 @router.post("/messages", response_model=AnthropicMessageResponse)
 def create_message(request: AnthropicMessageRequest):
