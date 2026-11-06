@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 import time
 from dataclasses import dataclass
@@ -51,6 +52,11 @@ def parse_args() -> argparse.Namespace:
         help="Translation endpoint path, for example /translate, /translate/local_llm, or /translate/gemma4.",
     )
     parser.add_argument(
+        "--api-key",
+        default=os.getenv("API_KEY", ""),
+        help="API key to authenticate against the secured endpoint.",
+    )
+    parser.add_argument(
         "--timeout",
         type=float,
         default=180.0,
@@ -68,12 +74,22 @@ def load_cases(path: Path) -> list[dict[str, Any]]:
     return data
 
 
-def post_json(url: str, payload: dict[str, Any], timeout: float) -> tuple[dict[str, Any], int]:
+def post_json(
+    url: str,
+    payload: dict[str, Any],
+    timeout: float,
+    api_key: str = "",
+) -> tuple[dict[str, Any], int]:
     body = json.dumps(payload).encode("utf-8")
+    headers = {"Content-Type": "application/json"}
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
+        headers["X-API-Key"] = api_key
+
     http_request = request.Request(
         url=url,
         data=body,
-        headers={"Content-Type": "application/json"},
+        headers=headers,
         method="POST",
     )
 
@@ -136,6 +152,7 @@ def run_case(
     translate_path: str,
     case: dict[str, Any],
     timeout: float,
+    api_key: str = "",
 ) -> CaseResult:
     payload = {
         "text": case["text"],
@@ -145,7 +162,7 @@ def run_case(
     endpoint = f"{base_url.rstrip('/')}/{translate_path.lstrip('/')}"
 
     try:
-        response_payload, latency_ms = post_json(endpoint, payload, timeout=timeout)
+        response_payload, latency_ms = post_json(endpoint, payload, timeout=timeout, api_key=api_key)
     except error.HTTPError as exc:
         response_body = exc.read().decode("utf-8", errors="replace")
         return CaseResult(
@@ -256,6 +273,7 @@ def main() -> int:
             args.translate_path,
             case,
             timeout=args.timeout,
+            api_key=args.api_key,
         )
         results.append(result)
         print_result(result)
