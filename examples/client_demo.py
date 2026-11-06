@@ -101,6 +101,8 @@ def main():
     parser = argparse.ArgumentParser(description="Test des endpoints de traduction vers le malgache.")
     parser.add_argument(
         "--url",
+        "--base-url",
+        dest="url",
         default="http://127.0.0.1:8000",
         help="URL de base du serveur (ex: https://xxx.ngrok-free.app ou http://127.0.0.1:8000)",
     )
