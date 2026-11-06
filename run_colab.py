@@ -13,6 +13,7 @@ def resolve_api_key() -> str | None:
     1. Environment variable API_KEY
     2. Google Colab Secrets (userdata)
     3. Kaggle Secrets (UserSecretsClient)
+    4. Local configuration / .env file
     """
     token = os.getenv("API_KEY")
     if token and token != "replace_me":
@@ -37,6 +38,15 @@ def resolve_api_key() -> str | None:
     except Exception:
         pass
 
+    # Attempt retrieval from local .env via Pydantic settings
+    try:
+        from app.config import get_settings
+        cfg_key = get_settings().api_key
+        if cfg_key and cfg_key != "replace_me":
+            return cfg_key
+    except Exception:
+        pass
+
     return None
 
 
@@ -46,6 +56,7 @@ def resolve_ngrok_token() -> str | None:
     1. Environment variable NGROK_AUTHTOKEN
     2. Google Colab Secrets (userdata)
     3. Kaggle Secrets (UserSecretsClient)
+    4. Local .env file
     """
     token = os.getenv("NGROK_AUTHTOKEN")
     if token and token != "replace_me":
@@ -69,6 +80,18 @@ def resolve_ngrok_token() -> str | None:
             return token
     except Exception:
         pass
+
+    # Attempt retrieval from .env file
+    if os.path.exists(".env"):
+        try:
+            with open(".env", "r", encoding="utf-8") as f:
+                for line in f:
+                    if line.strip().startswith("NGROK_AUTHTOKEN="):
+                        val = line.strip().split("=", 1)[1].strip()
+                        if val and val != "replace_me":
+                            return val
+        except Exception:
+            pass
 
     return None
 
