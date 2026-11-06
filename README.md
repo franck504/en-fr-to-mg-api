@@ -1,5 +1,7 @@
 # 🇲🇬 Service de Traduction Anglais/Français vers Malgache (MG)
 
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/franck504/en-fr-to-mg-api/blob/main/notebooks/colab_backend_launcher.ipynb)
+
 API haute performance pour traduire des textes de l'anglais ou du français vers le malgache (MG), propulsée **exclusivement par des modèles d'IA open source locaux** (NLLB-200, M2M100, Gemma 4).
 
 L'infrastructure cible est **Google Colab et Kaggle** (GPU T4/P100 gratuit). L'API implémente nativement les protocoles des plus grands standards d'IA (**OpenAI**, **Anthropic**, **Ollama**), ce qui permet de l'intégrer directement dans n'importe quelle application cliente ou framework (LangChain, LlamaIndex, etc.) sans modifier votre code client.
